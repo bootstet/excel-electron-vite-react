@@ -62,7 +62,7 @@ function createWindow() {
 
 // 创建子进程，直接打开service/index.js
 console.log('openExec', openExec)
-openExec = exec(`node ${path.join(process.env.APP_ROOT, 'service')}`, function(error: any, stdout: any, stderr: any) {
+function callback(error: any, stdout: any, stderr: any) {
   console.log('stderr', stderr)
   console.log('stdout', stdout)
   if (error) {
@@ -73,7 +73,8 @@ openExec = exec(`node ${path.join(process.env.APP_ROOT, 'service')}`, function(e
   console.log('使用exec方法输出: ' + stdout);
   console.log(`stderr: ${stderr}`);
   console.log(process.pid)
-})
+}
+// openExec = exec(`node ${path.join(process.env.APP_ROOT, 'service')}`, callback)
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
