@@ -1,109 +1,104 @@
-import React, { useEffect, useState } from 'react';
+import React, {  useState } from 'react';
 import { UploadOutlined } from '@ant-design/icons';
 import { Button, Card, message, Upload } from 'antd';
 import type { GetProp, UploadFile, UploadProps } from 'antd';
 import './App.css'
-import { readFileSync } from 'fs';
 
 const fs = require('fs')
 const path = require('path')
 
-fs.readFile('C:\\Users\\Administrator\\Desktop\\image\\1000220505 (1).jpg', (err, data) => {
-  if (err) return console.error(err);
-  // console.log(data.toString());
-});
 
 type FileType = Parameters<GetProp<UploadProps, 'beforeUpload'>>[0];
 
 
-
 const App: React.FC = () => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [dirUrl, setDirUrl] = useState('')
+  const [totalNum, setTotalNum] = useState(0)
 
-  const handleUpload = () => {
-    const formData = new FormData();
-    fileList.forEach((file) => {
-      formData.append('files[]', file as FileType);
-    });
-    setUploading(true);
-    // You can use any AJAX library you like
-    fetch('https://660d2bd96ddfa2943b33731c.mockapi.io/api/upload', {
-      method: 'POST',
-      body: formData,
-    })
-      .then((res) => res.json())
-      .then(() => {
-        setFileList([]);
-        message.success('upload successfully.');
-      })
-      .catch(() => {
-        message.error('upload failed.');
-      })
-      .finally(() => {
-        setUploading(false);
-      });
-  };
+
 
   const readImageFileSync = () => {
-    // const imagList = fileList[0].path.split
-    // console.log('imagList', imagList)
-    // setFileUrl(imagList)
     console.log('dirUrl', dirUrl)
-    fs.readdir(dirUrl, (err, files) => {
+    fs.readdir(dirUrl, (err: any, files: any) => {
       if (err) {
+        message.error('请先选择文件')
         return console.error('err', err)
       }
       console.log('files', files)
-      files.reduce((arc, ))
-      // const imageFiles = files.filter(file => path.parse(file).name in target);
-      // const lastIndex = dirUrl.lastIndexOf("\\");
-      // const afterLastSlash = dirUrl.substring(0, lastIndex);
-      // TODO: 已存在文件名判断
-      const newDirUrl = `${dirUrl}\重命名`
-      // 删除文件夹
-      fs.rmdir('newDirUrl',function(error){
-        if(error){
-            console.log(error);
-            return false;
+      const transfromResult = files.reduce((accumulator: any, currentValue: any) => {
+        const numArr  = currentValue.match(/(\d+)(?=.*?[(（])/g)
+        if (!numArr) {
+          message.error(`${currentValue}文件名不包含 （或者( ,请添加后重试`)
         }
-        console.log('删除目录成功');
-      })
-      // 新建文件夹
-      fs.mkdir(newDirUrl, function(error) {
-        if (error) {
-          console.error(error)
-          return false
+        const num = numArr[numArr.length - 1]
+        if (!(num in accumulator)) {
+          accumulator[num] = [currentValue]
+        } else {
+          accumulator[num].push(currentValue)
+        }
+        return accumulator
+      }, {})
+      console.log('transfromResult', transfromResult)
+      setTotalNum(files.length)
+     
+      const newDirUrl = `${dirUrl}\重新归类`
+
+      if (fs.existsSync(newDirUrl)) {
+        // return message.error('文件夹已存在， 请复制一份文件夹或者重新命名后再试')
+
+        fs.readdirSync(newDirUrl).forEach((file:any) => {
+          const curPath = path.join(newDirUrl, file);
+          if (fs.lstatSync(curPath).isDirectory()) {
+            fs.rmdirSync(curPath, { recursive: true });
+          } else {
+            fs.unlinkSync(curPath);
+          }
+        });
+      } else {
+        fs.mkdirSync(newDirUrl, function(error:any) {
+          if (error) {
+            console.error(error)
+            return false
+          }
+        })
+      }
+    
+      Object.keys(transfromResult).map((item:any) => {
+        console.log('item', item)
+        const ind = transfromResult[item].length
+        const curDirName = `${item}.${ind}_共${item * ind}`
+        console.log('curDirName', curDirName)
+        try {
+          const newPath = `${newDirUrl}\\${curDirName}`
+          // 这段代码会先检查文件夹是否存在，如果存在则清空文件夹内容；如果不存在则创建文件夹。
+          if (fs.existsSync(newPath)) {
+            fs.readdirSync(newPath).forEach((file:any) => {
+              const curPath = path.join(newPath, file);
+              if (fs.lstatSync(curPath).isDirectory()) {
+                fs.rmdirSync(curPath, { recursive: true });
+              } else {
+                fs.unlinkSync(curPath);
+              }
+            });
+          } else {
+            fs.mkdirSync(newPath);
+          }
+          transfromResult[item].forEach((element:any)=> {
+            const sourcePath = `${dirUrl}\\${element}`
+            const destinationPath = `${newDirUrl}\\${curDirName}\\${element}`
+              // 复制文件
+            fs.copyFileSync(sourcePath, destinationPath);
+            console.log('文件复制成功!');
+           
+          });
+          console.log('文件夹创建成功!');
+        } catch (err) {
+          console.error('创建文件夹时发生错误:', err);
         }
       })
-      console.log('newDirUrl', newDirUrl)
-      console.log('files[0]', files[0])
-
-            
-      //5.fs.readFile 读取文件  
-      fs.readFile(`${dirUrl}${files[0]}`,function(error,data){
-        if(error){
-            console.log(error);
-            return false;
-        }
-        //console.log(data);  //data是读取的十六进制的数据。  也可以在参数中加入编码格式"utf8"来解决十六进制的问题;
-        console.log(data.toString());  //读取出所有行的信息  
-      })
-
-
-
-      // var writerStream = fs.createWriteStream(`${newDirUrl}\\output.txt`);
-      // writerStream.write( files[0] , 'UTF8' );
-      // writerStream.end();  //标记文件末尾  结束写入流，释放资源  
-      // writerStream.on( 'finish',  function() {
-      //     console.log("写入完成。");
-      // });
-      // writerStream.on( 'error',  function(error){
-      //     console.log(error.stack);
-      // });
-
-
+      
+      message.success('文件夹生成成功，请核对后使用')
     });
   }
 
@@ -115,49 +110,28 @@ const App: React.FC = () => {
       newFileList.splice(index, 1);
       setFileList(newFileList);
     },
-    beforeUpload: (file, fileList1) => {
-      // console.log('file', file)
+    beforeUpload: (file:FileType, fileList1) => {
       const imagePathUrl  = file.path;
       const lastIndex = imagePathUrl.lastIndexOf("\\");
       const afterLastSlash = imagePathUrl.substring(0, lastIndex);
       
       console.log('imagePathUrl', imagePathUrl)
       console.log('afterLastSlash', afterLastSlash);
-      setDirUrl(afterLastSlash, () => {
-        console.log(1)
-      })
-      // console.log('fileList1', fileList1)
+      setDirUrl(afterLastSlash)
       setFileList([...fileList1]);
-      // 访问文件系统
-      // readImageFileSync()
       return false;
     },
     fileList,
     showUploadList: true
   };
 
-  useEffect(() => {
-
-  },[dirUrl] )
-
   return (
     <>
-      <Card className="fileList" title={`一共${fileList.length}个文件`} extra={<Button onClick={readImageFileSync} type="primary" size="small">重新命名</Button>} style={{ width: 300 }}>
+      <Card className="fileList" title={`一共${totalNum}个文件`} extra={<Button onClick={readImageFileSync} type="primary" size="small">一键生成</Button>} style={{ width: 300 }}>
         <Upload {...props}>
           <Button icon={<UploadOutlined />}>Select File</Button>
         </Upload>
       </Card>
-
-      {/* <Button
-        type="primary"
-        onClick={handleUpload}
-        disabled={fileList.length === 0}
-        loading={uploading}
-        style={{ marginTop: 16 }}
-      >
-        {uploading ? 'Uploading' : 'Start Upload'}
-      </Button> */}
-
 
     </>
   );

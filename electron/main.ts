@@ -57,7 +57,7 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
     //打开 DevTools
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
 }
 
 // 创建子进程，直接打开service/index.js
@@ -84,21 +84,21 @@ app.on('window-all-closed', () => {
     app.quit()
     win = null
   }
-  // 判断openExec是否存在，存在就杀掉node进程
-  if (!openExec) {
-    console.log('openExec is null')
-  } else {
-    console.log('=================')
-    exec('taskkill /f /t /im node.exe', function (error, stdout, stderr) {
-      if (error) {
-        console.log('=============', error.stack);
-        console.log('Error code: ' + error.code);
-        return;
-      }
-      console.log('使用exec方法输出: ' + stdout);
-      console.log(`stderr: ${stderr}`);
-    });
-  }
+  // // 判断openExec是否存在，存在就杀掉node进程
+  // if (!openExec) {
+  //   console.log('openExec is null')
+  // } else {
+  //   console.log('=================')
+  //   exec('taskkill /f /t /im node.exe', function (error, stdout, stderr) {
+  //     if (error) {
+  //       console.log('=============', error.stack);
+  //       console.log('Error code: ' + error.code);
+  //       return;
+  //     }
+  //     console.log('使用exec方法输出: ' + stdout);
+  //     console.log(`stderr: ${stderr}`);
+  //   });
+  // }
 })
 
 
