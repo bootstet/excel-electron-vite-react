@@ -63,9 +63,12 @@ const App: React.FC = () => {
           }
         })
       }
+      let printCount = 0;
     
       Object.keys(transfromResult).map((item:any) => {
-        console.log('item', item)
+        // 要打印的图片总数量
+        printCount = printCount + item * transfromResult[item].length
+        
         const ind = transfromResult[item].length
         const curDirName = `${item}.${ind}_共${item * ind}`
         console.log('curDirName', curDirName)
@@ -97,8 +100,21 @@ const App: React.FC = () => {
           console.error('创建文件夹时发生错误:', err);
         }
       })
+
+      console.log('printCount要打印的总数', printCount)
+      const newPath = `${newDirUrl}_${printCount}`
+      console.log('newDirUrl', newDirUrl)
+      console.log('newPath', newPath)
+      fs.rename(newDirUrl, newPath, (err:unknown) => {
+        if (err) {
+          console.error('重命名文件夹时发生错误:', err);
+        } else {
+          console.log('文件夹重命名成功!');
+        }
+      })
       
       message.success('文件夹生成成功，请核对后使用')
+      
     });
   }
 
