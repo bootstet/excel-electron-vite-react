@@ -44,10 +44,11 @@ const App: React.FC = () => {
      
       const newDirUrl = `${dirUrl}\重新归类`
 
+      // 如果文件夹存在，删除文件或文件名，不存在直接创建
       if (fs.existsSync(newDirUrl)) {
         // return message.error('文件夹已存在， 请复制一份文件夹或者重新命名后再试')
-
-        fs.readdirSync(newDirUrl).forEach((file:any) => {
+        
+        fs.readdirSync(newDirUrl).forEach((file:unknown) => {
           const curPath = path.join(newDirUrl, file);
           if (fs.lstatSync(curPath).isDirectory()) {
             fs.rmdirSync(curPath, { recursive: true });
@@ -56,7 +57,7 @@ const App: React.FC = () => {
           }
         });
       } else {
-        fs.mkdirSync(newDirUrl, function(error:any) {
+        fs.mkdirSync(newDirUrl, function(error:unknown) {
           if (error) {
             console.error(error)
             return false
