@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
@@ -40,12 +40,14 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: true, // 隔离
+      contextIsolation: false // 渲染进程是否使用node
     },
   })
 
-  // Test active push message to Renderer-process.
+  win.webContents.openDevTools()
+
+  // Test active push message to Renderer-process. 主进程渲染消息
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
@@ -60,19 +62,14 @@ function createWindow() {
     win.webContents.openDevTools();
 }
 
-// 创建子进程，直接打开service/index.js
-console.log('openExec', openExec)
-openExec = exec(`node ${path.join(process.env.APP_ROOT, 'service')}`, function(error: any, stdout: any, stderr: any) {
-  console.log('stderr', stderr)
-  console.log('stdout', stdout)
-  if (error) {
-    console.log('service error =>:', error.stack)
-    console.log('Error code: ' + error.code);
-    return;
-  }
-  console.log('使用exec方法输出: ' + stdout);
-  console.log(`stderr: ${stderr}`);
-  console.log(process.pid)
+
+// 接受渲染进程的消息
+ipcMain.on('renderer-process-message', (event, message) => {
+  console.log('message', decodeURIComponent(message))
+})
+// 渲染进程向主进程发送消息并异步等待结果，主进程接受
+ipcMain.handle('renderer-process-message', async (event, message) => {
+
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -82,21 +79,6 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
     win = null
-  }
-  // 判断openExec是否存在，存在就杀掉node进程
-  if (!openExec) {
-    console.log('openExec is null')
-  } else {
-    console.log('=================')
-    exec('taskkill /f /t /im node.exe', function (error, stdout, stderr) {
-      if (error) {
-        console.log('=============', error.stack);
-        console.log('Error code: ' + error.code);
-        return;
-      }
-      console.log('使用exec方法输出: ' + stdout);
-      console.log(`stderr: ${stderr}`);
-    });
   }
 })
 
