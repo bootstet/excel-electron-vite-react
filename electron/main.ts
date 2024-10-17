@@ -59,7 +59,7 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
     //打开 DevTools
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
 }
 
 
