@@ -87,6 +87,7 @@ function App() {
 
   // 上传文件并解析成json
   const HandleImportFile = (info) => {
+    setSpinning(true)
     const files = info.file;
     // 获取文件名称
     const name = files.name;
@@ -114,7 +115,6 @@ function App() {
           }
         }
         console.log('原始表格数据', data)
-
         // 表格数据处理 将表格数据转换为 { 商品信息: 'xxx', 数量: 78, .... }
         const keyObject = {
           '__EMPTY': "商品信息",
@@ -131,7 +131,6 @@ function App() {
             acc[keyObject[cur]] = item[cur]
             return acc
           }, {})
-          // console.log('transResult', transResult)
           return transResult
         })
 
@@ -152,13 +151,13 @@ function App() {
           info.onSuccess(info.res, info.file);
           setParamsResult(result)
 
-          // getDataFun(result)
-          // getGoodsData(result)
+          setSpinning(false)
           getNoExistData(result)
           console.log('result', result)
 
         }
       } catch (e) {
+        setSpinning(false)
         console.error('e', e)
         message.error('文件类型不正确！');
       }
@@ -176,6 +175,7 @@ function App() {
     const targetFileName = 'imagesFlower'
     const zipFileName = 'zipFlower.zip'
     const target = paramsResult
+    setSpinning(true)
 
     console.log('directoryPath', directoryPath)
     // node 访问文件系统
@@ -218,9 +218,9 @@ function App() {
         if (fs.existsSync(filePath)) {
           await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
           if (index === imageFiles.length - 1) {
-            generatePackage(zipFileName, `./${targetFileName}`)
+            await generatePackage(zipFileName, `./${targetFileName}`)
             setTimeout(() => {
-              downloadFile(`./${zipFileName}`)
+              downloadFile(`./${zipFileName}`, flowerName, () => setSpinning(false))
             }, 500);
           }
         } else {
@@ -234,6 +234,7 @@ function App() {
     const targetFileName = 'imagesTotal'
     const zipFileName = 'zipTotal.zip'
     const target = paramsResult
+    setSpinning(true)
 
     fs.readdir(directoryPath, async (err, files) => {
 
@@ -271,7 +272,7 @@ function App() {
       }, {})
       // 递归复制图片到中专文件夹
       let imageTotal = 0
-      Object.keys(transformData).map(async (item) => {
+      Object.keys(transformData).map(async (item, index) => {
         const ind = transformData[item].length
         imageTotal = imageTotal + item * ind
         const curDirName = `${item}.${ind}_共${imageTotal}`
@@ -291,16 +292,16 @@ function App() {
           } else {
             fs.mkdirSync(newPath);
           }
-          transformData[item].forEach(async (element, index) => {
+          transformData[item].forEach(async (element, num) => {
             const sourcePath = `${directoryPath}\\${element}`
             const destinationPath = `${baseDir}\\${curDirName}\\${element}`
             // 复制文件
             await fsExtra.copy(sourcePath, destinationPath);
-            if (index === transformData[item].length - 1) {
+            if (num === transformData[item].length - 1 && index === Object.keys(transformData).length - 1) {
 
-              generatePackage(zipFileName, `./${targetFileName}`)
+              await generatePackage(zipFileName, `./${targetFileName}`)
               setTimeout(() => {
-                downloadFile(`./${zipFileName}`, flowerName)
+                downloadFile(`./${zipFileName}`, flowerName, () => setSpinning(false))
               }, 500);
             }
           });
@@ -316,6 +317,7 @@ function App() {
   const buildGoodsImageFile = () => {
     const targetFileName = 'imagesGoods'
     const zipFileName = 'zipGoods.zip'
+    setSpinning(true)
 
     const target = paramsResult
     // node 访问文件系统
@@ -359,9 +361,9 @@ function App() {
           const filePath = `${subdirectoryPath}\\${imageName}_${imageNum}.${postfixName}`
           await fsExtra.copy(sourcePath, filePath)
           if (num === existArr.length - 1 && index === Object.keys(existImagesObj).length - 1) {
-            generatePackage(zipFileName, `./${targetFileName}`)
+            await generatePackage(zipFileName, `./${targetFileName}`)
             setTimeout(() => {
-              downloadFile(`./${zipFileName}`, goodsName)
+              downloadFile(`./${zipFileName}`, goodsName, () => setSpinning(false))
             }, 500);
           }
         })
