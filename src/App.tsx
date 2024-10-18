@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin } from 'antd';
-import axios from 'axios'
 import { UploadOutlined } from '@ant-design/icons';
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
+import { useNavigate } from "react-router-dom";
 import './App.css'
 
 import * as XLSX from 'xlsx';
@@ -76,13 +74,16 @@ function App() {
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
 
+  const navigate = useNavigate();
 
-  const currentPath = path.join(__dirname, '')
-  console.log('currentPath', currentPath)
-  console.log('__filename', __filename)
-  fs.readdir('./', (err, files) => {
-    console.log('当前路径', files)
-  })
+  useEffect(() => {
+    const endTime = '2024/12/30 23:59:59'
+    const endTimeDate = Date.parse(endTime)
+    const curTime = new Date().getTime()
+    if (curTime > endTimeDate ) {
+      navigate('/401')
+    }
+  }, [])
 
 
   // 上传文件并解析成json
