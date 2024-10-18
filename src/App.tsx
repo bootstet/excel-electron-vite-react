@@ -7,14 +7,13 @@ import viteLogo from '/electron-vite.animate.svg'
 import './App.css'
 
 import * as XLSX from 'xlsx';
-import { findStringAndNextWord } from './utils';
+import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
 import { saveAs } from 'file-saver';
 
 const path = require('path')
 const fs = require('fs')
 const archiver = require('archiver')
 const fsExtra = require('fs-extra');
-// const { clearDir } = require('./utils/nodeTools')
 
 /**
  * 删除文件夹下所有问价及将文件夹下所有文件清空
@@ -23,14 +22,14 @@ const fsExtra = require('fs-extra');
 function emptyDir(path) {
   const files = fs.readdirSync(path);
   files.forEach(file => {
-      const filePath = `${path}/${file}`;
-      const stats = fs.statSync(filePath);
-      if (stats.isDirectory()) {
-          emptyDir(filePath);
-      } else {
-          fs.unlinkSync(filePath);
-          console.log(`删除${file}文件成功`);
-      }
+    const filePath = `${path}/${file}`;
+    const stats = fs.statSync(filePath);
+    if (stats.isDirectory()) {
+      emptyDir(filePath);
+    } else {
+      fs.unlinkSync(filePath);
+      console.log(`删除${file}文件成功`);
+    }
   });
 }
 
@@ -38,20 +37,20 @@ function emptyDir(path) {
 * 删除指定路径下的所有空文件夹
 * @param {*} path 
 */
-function rmEmptyDir(path, level=0) {
+function rmEmptyDir(path, level = 0) {
   const files = fs.readdirSync(path);
   if (files.length > 0) {
-      let tempFile = 0;
-      files.forEach(file => {
-          tempFile++;
-          rmEmptyDir(`${path}/${file}`, 1);
-      });
-      if (tempFile === files.length && level !== 0) {
-          fs.rmdirSync(path);
-      }
+    let tempFile = 0;
+    files.forEach(file => {
+      tempFile++;
+      rmEmptyDir(`${path}/${file}`, 1);
+    });
+    if (tempFile === files.length && level !== 0) {
+      fs.rmdirSync(path);
+    }
   }
   else {
-      level !==0 && fs.rmdirSync(path);
+    level !== 0 && fs.rmdirSync(path);
   }
 }
 
@@ -65,8 +64,11 @@ function clearDir(path) {
 
 }
 
+
+const folderPath = 'images'
+const directoryPath = path.join('./', folderPath);
+
 function App() {
-  const [count, setCount] = useState(0)
   const [form] = Form.useForm();
   const [flowerName, setFlowerName] = useState('');
   const [flowerNameByZu, setFlowerNameByZu] = useState('');
@@ -74,36 +76,24 @@ function App() {
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
 
-  // useEffect(() => {
-  //   axios.get('https://localhost:3001/getData')
-  //     .then(res => {
-  //       console.log('res', res)
-  //     })
-  //     .catch(err => {
-  //       console.log('error', err)
-  //     })
-  // }, [])
-  // console.log('window.ipcRenderer.nodeParams', window.ipcRenderer.nodeParams)
-  // const __dirname = window.ipcRenderer.nodeParams.dirname
-  // const __filename = window.ipcRenderer.nodeParams.filename
-  // const {fs, path} = window.ipcRenderer.nodeModules
+
   const currentPath = path.join(__dirname, '')
   console.log('currentPath', currentPath)
   console.log('__filename', __filename)
   fs.readdir('./', (err, files) => {
     console.log('当前路径', files)
   })
-  const directoryPath = path.join('./', 'images');
 
-   // 上传文件并解析成json
-   const HandleImportFile = (info) => {
+
+  // 上传文件并解析成json
+  const HandleImportFile = (info) => {
     const files = info.file;
     // 获取文件名称
     const name = files.name;
     // 获取文件后缀
     const suffix = name.substr(name.lastIndexOf('.'));
     const reader = new FileReader();
-    reader.onload = async(event) => {
+    reader.onload = async (event) => {
       try {
         // 判断文件类型是否正确
         if ('.xls' != suffix && '.xlsx' != suffix) {
@@ -124,7 +114,7 @@ function App() {
           }
         }
         console.log('原始表格数据', data)
-        
+
         // 表格数据处理 将表格数据转换为 { 商品信息: 'xxx', 数量: 78, .... }
         const keyObject = {
           '__EMPTY': "商品信息",
@@ -135,10 +125,10 @@ function App() {
           '数量': "数量",
           'SKU ID': "SKU ID"
         }
-        
+
         data = data.map(item => {
           const transResult = Object.keys(item).reduce((acc, cur) => {
-            acc[keyObject[cur]]= item[cur]
+            acc[keyObject[cur]] = item[cur]
             return acc
           }, {})
           // console.log('transResult', transResult)
@@ -161,12 +151,12 @@ function App() {
           info.onProgress({ percent: 100 }, info.file);
           info.onSuccess(info.res, info.file);
           setParamsResult(result)
-          
+
           // getDataFun(result)
           // getGoodsData(result)
           getNoExistData(result)
           console.log('result', result)
-          
+
         }
       } catch (e) {
         console.error('e', e)
@@ -181,94 +171,76 @@ function App() {
     setGoodsName(goodsName);
     setFlowerNameByZu(flowerNameByZu);
   }
-  
-  const buildFlowerImageFile = () => {
+
+  const buildFlowerImageFile = async () => {
+    const targetFileName = 'imagesFlower'
+    const zipFileName = 'zipFlower.zip'
     const target = paramsResult
-  // console.log('res', res)
 
-  // const directoryPath = path.join(__dirname, 'images')
-  console.log('directoryPath', directoryPath)
-  // node 访问文件系统
-  fs.readdir(directoryPath, (err, files) => {
-    
-    console.log('files', files)
-    // const imageFiles = files.filter(file => path.parse(file).name in target);
+    console.log('directoryPath', directoryPath)
+    // node 访问文件系统
+    fs.readdir(directoryPath, async (err, files) => {
+      console.log('files', files)
 
-    const imageFiles = files.filter(file => {
-      let bol  = false
-      for (const key in target) {
-        if (file.includes(key)) {
-          return bol = true
+      const imageFiles = files.filter(file => {
+        let bol = false
+        for (const key in target) {
+          if (file.includes(key)) {
+            return bol = true
+          } else {
+            bol = false
+          }
+        }
+        return bol
+      })
+
+      // 新建一个文件夹
+      const baseDir = path.join('./', targetFileName)
+      if (fs.existsSync(baseDir)) {
+        clearDir(baseDir)
+      }
+      await fsExtra.ensureDir(baseDir)
+
+      imageFiles.forEach(async (file, index) => {
+        console.log('filename', file)
+        const baseName = file.split('.')[0]
+        const filePath = path.join(folderPath, file);
+
+        let keyBaseName = ''
+        for (const key in target) {
+          if (file.includes(key)) {
+            keyBaseName = key
+          }
+        }
+        // 压缩包中的文件名
+        const downName = `${baseName}-${target[keyBaseName]}.jpg`
+        console.log('downName', downName)
+        if (fs.existsSync(filePath)) {
+          await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
+          if (index === imageFiles.length - 1) {
+            generatePackage(zipFileName, `./${targetFileName}`)
+            setTimeout(() => {
+              downloadFile(`./${zipFileName}`)
+            }, 500);
+          }
         } else {
-          bol = false
+          console.log(`${file} does not exist`);
         }
-      }
-      return bol
-    })
-    
+      });
 
-    console.log('imageFiles', imageFiles)
-  
-
-    const folderPath = 'images'
-    const archive = archiver('zip');
-    let res = null
-     // 压缩过程
-     archive.on('warning', (err) => {
-      if (err.code === 'ENOENT') {
-        // log warning
-      } else {
-        // throw error
-        throw err;
-      }
     });
-    // 压缩报错日志
-    archive.on('error', (err) => {
-      throw err;
-    });
-   
-
-    imageFiles.forEach((file) => {
-      console.log('filename', file)
-      const baseName =  file.split('.')[0]
-      const filePath = path.join(folderPath, file);
-
-      let keyBaseName = '' 
-      for (const key in target) {
-        if (file.includes(key)) {
-          keyBaseName = key
-        }
-      }
-      // 压缩包中的文件名
-      // const downName = `${baseName}-${target[keyBaseName]}.jpg` 
-      const downName = `${target[keyBaseName]}(个).jpg` 
-      console.log('downName', downName)
-      if (fs.existsSync(filePath)) {
-        archive.append(fs.createReadStream(filePath), { name: downName });
-      } else {
-        console.log(`${file} does not exist`);
-      }
-    });
-    // 返回压缩包文件流
-    archive.finalize();
-    // window.open(res)
-    console.log(archive)
-  });
   }
   const buildTotalImageFile = () => {
+    const targetFileName = 'imagesTotal'
+    const zipFileName = 'zipTotal.zip'
     const target = paramsResult
 
     fs.readdir(directoryPath, async (err, files) => {
-      if (err) {
-        return res.status(500).send(err);
-      }
-      // const imageFiles = files.filter(file => path.parse(file).name in target);
-      console.log('前端传过来的参数target', target)
+
       const existImagesObj = {} // 存在的图片
       const noExistImagesObj = {} // 不存在的图片
       const imageFiles = files.filter(file => {
-        let bol  = false
-        
+        let bol = false
         for (const key in target) {
           if (file.includes(key)) {
             existImagesObj[key] = target[key]
@@ -280,24 +252,15 @@ function App() {
         }
         return bol
       })
-  
-      // 新建一个文件夹
-      const baseDir = path.join('./', 'imagesTarget')
-      const copyDir = path.join('./', 'imagesTargetsCopy')
-      if (fs.existsSync(baseDir)) { 
+
+      const baseDir = path.join('./', targetFileName)
+      if (fs.existsSync(baseDir)) {
         clearDir(baseDir)
       }
-      if (fs.existsSync(copyDir)) { 
-        clearDir(copyDir)
-      }
-     
+
       await fsExtra.ensureDir(baseDir)
-        
-      // console.log('images文件中存在excel SKC的文件', imageFiles)
-      // console.log('existImagesObj', existImagesObj)
-      // console.log('noExistImagesObj', noExistImagesObj)
-  
-      const transformData = Object.keys(existImagesObj).reduce((acc,cur) => {
+
+      const transformData = Object.keys(existImagesObj).reduce((acc, cur) => {
         const val = existImagesObj[cur]
         if (val in acc) {
           acc[val] = acc[val].concat(imageFiles.filter(item => item.includes(cur)))
@@ -312,7 +275,7 @@ function App() {
         const ind = transformData[item].length
         imageTotal = imageTotal + item * ind
         const curDirName = `${item}.${ind}_共${imageTotal}`
-        
+
         try {
           const newPath = `${baseDir}\\${curDirName}`
           // 这段代码会先检查文件夹是否存在，如果存在则清空文件夹内容；如果不存在则创建文件夹。
@@ -328,55 +291,16 @@ function App() {
           } else {
             fs.mkdirSync(newPath);
           }
-          // await fsExtra.ensureDir(newPath)
           transformData[item].forEach(async (element, index) => {
             const sourcePath = `${directoryPath}\\${element}`
             const destinationPath = `${baseDir}\\${curDirName}\\${element}`
-              // 复制文件
+            // 复制文件
             await fsExtra.copy(sourcePath, destinationPath);
             if (index === transformData[item].length - 1) {
-              console.log('====================================');
-              console.log('复制完成');
-              console.log('====================================');
 
-              // 创建一个文件写入流
-              const output = fs.createWriteStream('example.zip');
-              const archive = archiver('zip', {
-                zlib: { level: 9 } // 设置压缩级别
-              });
-
-              // 监听错误事件
-              archive.on('error', function(err){
-                throw err;
-              });
-
-              // 将输出流管道到文件
-              archive.pipe(output);
-
-              // 添加整个文件夹到压缩包，假设文件夹名为'folderToZip'
-              // const folderPath = path.join(baseDirCopy, 'folderToZip');
-              
-              archive.directory('./imagesTarget', false);
-
-              // 结束压缩过程
-              archive.finalize();
-            
+              generatePackage(zipFileName, `./${targetFileName}`)
               setTimeout(() => {
-                axios.get('./example.zip', {
-                  responseType: 'blob',
-                  headers: {
-                    responseType: 'blob'
-                  }
-                })
-                .then((res) => {
-                  console.log('res', res)
-                  const url = window.URL.createObjectURL(res.data);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  // link.setAttribute('download', 'packjs.zip');
-                  document.body.appendChild(link);
-                  link.click();
-                })
+                downloadFile(`./${zipFileName}`, flowerName)
               }, 500);
             }
           });
@@ -385,18 +309,73 @@ function App() {
           console.error('创建文件夹时发生错误:', err);
         }
       })
-  
-      
+
+
     });
   }
-  const buildGoodsImageFile = () => {}
-  const getNoExistData= (result) => {
+  const buildGoodsImageFile = () => {
+    const targetFileName = 'imagesGoods'
+    const zipFileName = 'zipGoods.zip'
+
+    const target = paramsResult
+    // node 访问文件系统
     fs.readdir(directoryPath, async (err, files) => {
-      
+
+      const existImagesObj = {} // 存在的图片
+      const noExistImagesObj = {} // 不存在的图片
+      const imageFiles = files.filter(file => {
+        let bol = false
+        for (const key in target) {
+          if (file.includes(key)) {
+            existImagesObj[key] = target[key]
+            return bol = true
+          } else {
+            noExistImagesObj[key] = target[key]
+            bol = false
+          }
+        }
+        return bol
+      })
+
+      // 新建一个文件夹
+      const subdirectoryName = targetFileName
+      const baseDir = path.join('./', subdirectoryName)
+
+      if (fs.existsSync(baseDir)) {
+        clearDir(baseDir)
+      }
+      await fsExtra.ensureDir(baseDir) // 确保目录存在  
+      let imageTotal = 0
+      const transformData = Object.keys(existImagesObj).map(async (item, index) => {
+        const existArr = imageFiles.filter(fileName => fileName.includes(item))
+        const imageNum = Number(existImagesObj[item]) // 每张图片数量
+        const subdirectoryPath = path.join('./', subdirectoryName, `A${index + 1}-${item}-(${imageNum * existArr.length})`)
+        imageTotal += imageNum * existArr.length
+        await fsExtra.ensureDir(subdirectoryPath)
+        existArr.forEach(async (element, num) => {
+          const sourcePath = `${directoryPath}\\${element}`
+          const imageName = element.split('.')[0] // 图片名称
+          const postfixName = element.split('.')[1] // 图片后缀
+          const filePath = `${subdirectoryPath}\\${imageName}_${imageNum}.${postfixName}`
+          await fsExtra.copy(sourcePath, filePath)
+          if (num === existArr.length - 1 && index === Object.keys(existImagesObj).length - 1) {
+            generatePackage(zipFileName, `./${targetFileName}`)
+            setTimeout(() => {
+              downloadFile(`./${zipFileName}`, goodsName)
+            }, 500);
+          }
+        })
+      })
+    });
+  }
+
+  const getNoExistData = (result) => {
+    fs.readdir(directoryPath, async (err, files) => {
+
       const existImagesObj = {} // 存在的图片
       const noExistImagesObj = {} // 不存在的图片
       console.log('files', files)
-  
+
       Object.keys(result).map(item => {
         if (files.some(file => file.includes(item))) {
           existImagesObj[item] = item
@@ -406,7 +385,7 @@ function App() {
       })
       console.log('noExistImagesObj', noExistImagesObj)
       const data = Object.keys(noExistImagesObj).join(',')
-      if(Object.keys(data).length > 0) {
+      if (Object.keys(data).length > 0) {
         Modal.error({
           title: '不存在的图片skc有：',
           content: data
@@ -442,26 +421,6 @@ function App() {
     customRequest: HandleImportFile,
   };
 
-  const downZipFile = () => {
-    axios.get('./example.zip', {
-      responseType: 'blob',
-      headers: {
-        responseType: 'blob'
-      }
-    })
-    .then((res) => {
-      console.log('res', res)
-      // const url = window.URL.createObjectURL(new Blob([res.data]));
-      const url = window.URL.createObjectURL(res.data);
-      const link = document.createElement('a');
-      link.href = url;
-      // link.setAttribute('download', 'packjs.zip');
-      document.body.appendChild(link);
-      link.click();
-    })
-  }
-
-
   return (
     <ConfigProvider
       theme={{
@@ -469,16 +428,15 @@ function App() {
           // Seed Token，影响范围大
           colorPrimary: '#00b96b',
           borderRadius: 2,
-
           // 派生变量，影响范围小
           colorBgContainer: '#f6ffed',
         },
-      }}  
+      }}
     >
       <main className="min-h-screen ">
-        <div  className="flex  justify-between p-24">
+        <div className="flex  justify-between p-24">
           <Upload {...props}>
-            <Button type="primary"  icon={<UploadOutlined />}>
+            <Button type="primary" icon={<UploadOutlined />}>
               导入表格
             </Button>
             <div>
@@ -487,8 +445,7 @@ function App() {
             </div>
           </Upload>
         </div>
-        
-        
+
         <Form
           name="basic"
           form={form}
@@ -499,24 +456,19 @@ function App() {
           autoComplete="off"
           onValuesChange={filedChange}
         >
-
           <Form.Item label="引花名" name="flowerName">
             <Input />
           </Form.Item>
-
           <Form.Item label="拣货名" name="goodsName">
             <Input />
           </Form.Item>
-          
         </Form>
         <div className="btnCon">
           <Button onClick={buildFlowerImageFile} disabled={!flowerName}>生成印花文件</Button>
           <Button onClick={buildTotalImageFile} disabled={!flowerName} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} disabled={!goodsName} className="ml-20">生成拣货文件</Button>
-          <Button onClick={downZipFile}>down</Button>
         </div>
-        <Spin spinning={spinning}  fullscreen tip="生成中..." />
-        <a href="./example.zip">222</a>
+        <Spin spinning={spinning} fullscreen tip="生成中..." />
       </main>
     </ConfigProvider>
   );

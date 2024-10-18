@@ -6,11 +6,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-/imagesTarget/**/*
-/imagesTargetsCopy/**/*
+/imagesFlower/**/*
+/imagesGoods/**/*
+/imagesTotal/**/*
 /images/**/*
+zipFlower.zip
+zipGoods.zip
+zipTotal.zip
 
-example.zip
+
 
 node_modules
 dist
