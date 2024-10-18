@@ -133,11 +133,14 @@ function App() {
 
         data = data.map((item: any) => {
           const transResult = Object.keys(item as any).reduce((acc: any, cur: any) => {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             acc[keyObject[cur]] = item[cur]
             return acc
           }, {})
           return transResult
         })
+        console.log('表格数据', data)
 
         if (data && data.length < 1) {
           message.error('表格中没有数据,请重新上传');
@@ -167,7 +170,7 @@ function App() {
         message.error('文件类型不正确！');
       }
     };
-    // reader.readAsBinaryString(files);
+    reader.readAsBinaryString(files);
   };
   const filedChange = (changedValues: { flowerName: string; goodsName: string; }[], allValues: { flowerName: string; goodsName: string; }) => {
     const { flowerName, goodsName } = allValues;
