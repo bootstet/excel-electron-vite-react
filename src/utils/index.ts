@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { AxiosResponse } from "axios"
 
 const axios = require('axios')

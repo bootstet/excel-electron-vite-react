@@ -1,14 +1,11 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
-const require = createRequire(import.meta.url)
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const dirname = path.dirname(fileURLToPath(import.meta.url))
+console.log('__dirname', __dirname)
+console.log('dirname', dirname)
 
-const childProcess = require('child_process')
-const exec = childProcess.exec
-let openExec
 
 // The built directory structure
 //
@@ -69,7 +66,8 @@ ipcMain.on('renderer-process-message', (event, message) => {
 })
 // 渲染进程向主进程发送消息并异步等待结果，主进程接受
 ipcMain.handle('renderer-process-message', async (event, message) => {
-
+  console.log('message', decodeURIComponent(message))
+  console.log('event', event)
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

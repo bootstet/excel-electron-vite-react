@@ -19,7 +19,7 @@ zipTotal.zip
 node_modules
 dist
 dist-ssr
-#dist-electron
+dist-electron
 release
 *.local
 

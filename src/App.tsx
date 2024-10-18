@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from 'react'
 import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
@@ -6,20 +8,21 @@ import './App.css'
 
 import * as XLSX from 'xlsx';
 import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
-import { saveAs } from 'file-saver';
+import { UploadChangeParam } from 'antd/es/upload/interface';
 
 const path = require('path')
 const fs = require('fs')
-const archiver = require('archiver')
 const fsExtra = require('fs-extra');
+
+
 
 /**
  * 删除文件夹下所有问价及将文件夹下所有文件清空
  * @param {*} path 
  */
-function emptyDir(path) {
+function emptyDir(path: string) {
   const files = fs.readdirSync(path);
-  files.forEach(file => {
+  files.forEach((file: string) => {
     const filePath = `${path}/${file}`;
     const stats = fs.statSync(filePath);
     if (stats.isDirectory()) {
@@ -35,11 +38,11 @@ function emptyDir(path) {
 * 删除指定路径下的所有空文件夹
 * @param {*} path 
 */
-function rmEmptyDir(path, level = 0) {
+function rmEmptyDir(path: string, level = 0) {
   const files = fs.readdirSync(path);
   if (files.length > 0) {
     let tempFile = 0;
-    files.forEach(file => {
+    files.forEach((file: string) => {
       tempFile++;
       rmEmptyDir(`${path}/${file}`, 1);
     });
@@ -56,7 +59,7 @@ function rmEmptyDir(path, level = 0) {
 * 清空指定路径下的所有文件及文件夹
 * @param {*} path 
 */
-function clearDir(path) {
+function clearDir(path: string) {
   emptyDir(path);
   rmEmptyDir(path);
 
@@ -80,14 +83,14 @@ function App() {
     const endTime = '2024/12/30 23:59:59'
     const endTimeDate = Date.parse(endTime)
     const curTime = new Date().getTime()
-    if (curTime > endTimeDate ) {
+    if (curTime > endTimeDate) {
       navigate('/401')
     }
   }, [])
 
 
   // 上传文件并解析成json
-  const HandleImportFile = (info) => {
+  const HandleImportFile = (info: any) => {
     setSpinning(true)
     const files = info.file;
     // 获取文件名称
@@ -102,14 +105,14 @@ function App() {
           message.error('选择Excel格式的文件导入!');
           return false;
         }
-        const { result } = event.target;
+        const { result } = event.target as FileReader;
         // 读取文件
         const workbook = XLSX.read(result, { type: 'binary' });
-        let data = [];
+        let data: any[] = [];
         // 循环文件中的每个表
         console.log('表格数据workbook：', workbook);
         for (const sheet in workbook.Sheets) {
-          if (workbook.Sheets.hasOwnProperty(sheet)) {
+          if (Object.prototype.hasOwnProperty.call(workbook.Sheets, sheet)) {
             // 将获取到表中的数据转化为json格式
             console.log('XLSX.utils.sheet_to_json(workbook.Sheets[sheet])', XLSX.utils.sheet_to_json(workbook.Sheets[sheet]))
             data = data.concat(XLSX.utils.sheet_to_json(workbook.Sheets[sheet]));
@@ -127,8 +130,9 @@ function App() {
           'SKU ID': "SKU ID"
         }
 
-        data = data.map(item => {
-          const transResult = Object.keys(item).reduce((acc, cur) => {
+
+        data = data.map((item: any) => {
+          const transResult = Object.keys(item as any).reduce((acc: any, cur: any) => {
             acc[keyObject[cur]] = item[cur]
             return acc
           }, {})
@@ -163,9 +167,9 @@ function App() {
         message.error('文件类型不正确！');
       }
     };
-    reader.readAsBinaryString(files);
+    // reader.readAsBinaryString(files);
   };
-  const filedChange = (changedValues, allValues) => {
+  const filedChange = (changedValues: { flowerName: string; goodsName: string; }[], allValues: { flowerName: string; goodsName: string; }) => {
     const { flowerName, goodsName } = allValues;
     setFlowerName(flowerName);
     setGoodsName(goodsName);
@@ -175,15 +179,16 @@ function App() {
   const buildFlowerImageFile = async () => {
     const targetFileName = 'imagesFlower'
     const zipFileName = 'zipFlower.zip'
-    const target = paramsResult
+    const target: { [key: string]: number } = paramsResult
     setSpinning(true)
 
     console.log('directoryPath', directoryPath)
     // node 访问文件系统
-    fs.readdir(directoryPath, async (err, files) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    fs.readdir(directoryPath, async (err: any, files: any[]) => {
       console.log('files', files)
 
-      const imageFiles = files.filter(file => {
+      const imageFiles = files.filter((file: string | string[]) => {
         let bol = false
         for (const key in target) {
           if (file.includes(key)) {
@@ -202,7 +207,7 @@ function App() {
       }
       await fsExtra.ensureDir(baseDir)
 
-      imageFiles.forEach(async (file, index) => {
+      imageFiles.forEach(async (file: string, index: number) => {
         console.log('filename', file)
         const baseName = file.split('.')[0]
         const filePath = path.join(folderPath, file);
@@ -234,14 +239,15 @@ function App() {
   const buildTotalImageFile = () => {
     const targetFileName = 'imagesTotal'
     const zipFileName = 'zipTotal.zip'
-    const target = paramsResult
+    const target: { [key: string]: number } = paramsResult
+    
     setSpinning(true)
 
-    fs.readdir(directoryPath, async (err, files) => {
+    fs.readdir(directoryPath, async (err: any, files: any[]) => {
 
-      const existImagesObj = {} // 存在的图片
-      const noExistImagesObj = {} // 不存在的图片
-      const imageFiles = files.filter(file => {
+      const existImagesObj: any = {} // 存在的图片
+      const noExistImagesObj: any = {} // 不存在的图片
+      const imageFiles = files.filter((file: string | string[]) => {
         let bol = false
         for (const key in target) {
           if (file.includes(key)) {
@@ -261,28 +267,29 @@ function App() {
       }
 
       await fsExtra.ensureDir(baseDir)
-
-      const transformData = Object.keys(existImagesObj).reduce((acc, cur) => {
+      
+      const transformData: any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
         const val = existImagesObj[cur]
         if (val in acc) {
-          acc[val] = acc[val].concat(imageFiles.filter(item => item.includes(cur)))
+          acc[val] = acc[val].concat(imageFiles.filter((item: string | string[]) => item.includes(cur)))
         } else {
-          acc[val] = imageFiles.filter(item => item.includes(cur))
+          acc[val] = imageFiles.filter((item: string | string[]) => item.includes(cur))
         }
         return acc
       }, {})
+      console.log('transformData', transformData)
       // 递归复制图片到中专文件夹
-      let imageTotal = 0
+      let imageTotal: number = 0
       Object.keys(transformData).map(async (item, index) => {
         const ind = transformData[item].length
-        imageTotal = imageTotal + item * ind
+        imageTotal = imageTotal + (item as unknown as number) * ind
         const curDirName = `${item}.${ind}_共${imageTotal}`
 
         try {
           const newPath = `${baseDir}\\${curDirName}`
           // 这段代码会先检查文件夹是否存在，如果存在则清空文件夹内容；如果不存在则创建文件夹。
           if (fs.existsSync(newPath)) {
-            fs.readdirSync(newPath).forEach((file) => {
+            fs.readdirSync(newPath).forEach((file: any) => {
               const curPath = path.join(newPath, file);
               if (fs.lstatSync(curPath).isDirectory()) {
                 fs.rmdirSync(curPath, { recursive: true });
@@ -293,7 +300,7 @@ function App() {
           } else {
             fs.mkdirSync(newPath);
           }
-          transformData[item].forEach(async (element, num) => {
+          transformData[item].forEach(async (element: any, num: number) => {
             const sourcePath = `${directoryPath}\\${element}`
             const destinationPath = `${baseDir}\\${curDirName}\\${element}`
             // 复制文件
@@ -320,13 +327,13 @@ function App() {
     const zipFileName = 'zipGoods.zip'
     setSpinning(true)
 
-    const target = paramsResult
+    const target: { [key: string]: number } = paramsResult
     // node 访问文件系统
-    fs.readdir(directoryPath, async (err, files) => {
+    fs.readdir(directoryPath, async (err: any, files: any[]) => {
 
-      const existImagesObj = {} // 存在的图片
-      const noExistImagesObj = {} // 不存在的图片
-      const imageFiles = files.filter(file => {
+      const existImagesObj: any = {} // 存在的图片
+      const noExistImagesObj: any = {} // 不存在的图片
+      const imageFiles = files.filter((file: string | string[]) => {
         let bol = false
         for (const key in target) {
           if (file.includes(key)) {
@@ -348,14 +355,12 @@ function App() {
         clearDir(baseDir)
       }
       await fsExtra.ensureDir(baseDir) // 确保目录存在  
-      let imageTotal = 0
-      const transformData = Object.keys(existImagesObj).map(async (item, index) => {
-        const existArr = imageFiles.filter(fileName => fileName.includes(item))
+      Object.keys(existImagesObj).map(async (item, index) => {
+        const existArr = imageFiles.filter((fileName: string | string[]) => fileName.includes(item))
         const imageNum = Number(existImagesObj[item]) // 每张图片数量
         const subdirectoryPath = path.join('./', subdirectoryName, `A${index + 1}-${item}-(${imageNum * existArr.length})`)
-        imageTotal += imageNum * existArr.length
         await fsExtra.ensureDir(subdirectoryPath)
-        existArr.forEach(async (element, num) => {
+        existArr.forEach(async (element: string, num: number) => {
           const sourcePath = `${directoryPath}\\${element}`
           const imageName = element.split('.')[0] // 图片名称
           const postfixName = element.split('.')[1] // 图片后缀
@@ -369,18 +374,19 @@ function App() {
           }
         })
       })
+
     });
   }
 
-  const getNoExistData = (result) => {
-    fs.readdir(directoryPath, async (err, files) => {
+  const getNoExistData = (result: unknown) => {
+    fs.readdir(directoryPath, async (err: any, files: any[]) => {
 
-      const existImagesObj = {} // 存在的图片
-      const noExistImagesObj = {} // 不存在的图片
+      const existImagesObj: any = {} // 存在的图片
+      const noExistImagesObj: any = {} // 不存在的图片
       console.log('files', files)
 
-      Object.keys(result).map(item => {
-        if (files.some(file => file.includes(item))) {
+      Object.keys(result as any).map((item: any) => {
+        if (files.some((file: string | string[]) => file.includes(item))) {
           existImagesObj[item] = item
         } else {
           noExistImagesObj[item] = item
@@ -401,14 +407,14 @@ function App() {
       }
     });
   }
-  const props = {
+  const props: any = {
     name: 'file',
     action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
     headers: {
       authorization: 'authorization-text',
     },
     maxCount: 1,
-    onChange(info) {
+    onChange(info: { file: { status: string; name: any; }; fileList: any; }) {
       if (info.file.status !== 'uploading') {
         console.log(info.file, info.fileList);
       }
