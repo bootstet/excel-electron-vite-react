@@ -8,7 +8,6 @@ import './App.css'
 
 import * as XLSX from 'xlsx';
 import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
-import { UploadChangeParam } from 'antd/es/upload/interface';
 
 const path = require('path')
 const fs = require('fs')
@@ -445,7 +444,7 @@ function App() {
         },
       }}
     >
-      <main className="min-h-screen ">
+      <main className="min-h-screen">
         <div className="flex  justify-between p-24">
           <Upload {...props}>
             <Button type="primary" icon={<UploadOutlined />}>
@@ -476,8 +475,8 @@ function App() {
           </Form.Item>
         </Form>
         <div className="btnCon">
-          <Button onClick={buildFlowerImageFile} disabled={!flowerName}>生成印花文件</Button>
-          <Button onClick={buildTotalImageFile} disabled={!flowerName} className="ml-20">生成印花文件(脚哥专用)</Button>
+          <Button className="btn" onClick={buildFlowerImageFile} disabled={!flowerName}>生成印花文件</Button>
+          <Button  onClick={buildTotalImageFile} disabled={!flowerName} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} disabled={!goodsName} className="ml-20">生成拣货文件</Button>
         </div>
         <Spin spinning={spinning} fullscreen tip="生成中..." />
