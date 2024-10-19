@@ -42,7 +42,7 @@ function createWindow() {
     },
   })
 
-  win.webContents.openDevTools()
+  // win.webContents.openDevTools()
 
   // Test active push message to Renderer-process. 主进程渲染消息
   win.webContents.on('did-finish-load', () => {
