@@ -13,6 +13,7 @@ const path = require('path')
 const fs = require('fs')
 const fsExtra = require('fs-extra');
 
+const endTime = '2024/12/30 23:59:59'
 
 
 /**
@@ -79,7 +80,6 @@ function App() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const endTime = '2024/12/30 23:59:59'
     const endTimeDate = Date.parse(endTime)
     const curTime = new Date().getTime()
     if (curTime > endTimeDate) {
