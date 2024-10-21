@@ -15,7 +15,6 @@ const fsExtra = require('fs-extra');
 
 const endTime = '2024/12/30 23:59:59'
 
-
 /**
  * 删除文件夹下所有问价及将文件夹下所有文件清空
  * @param {*} path 
