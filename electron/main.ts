@@ -38,11 +38,18 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: true, // 隔离
-      contextIsolation: false // 渲染进程是否使用node
+      contextIsolation: false, // 渲染进程是否使用node
+      webSecurity: false // 是否禁用安全策略
     },
   })
 
   // win.webContents.openDevTools()
+  if (__dirname.split(path.sep).indexOf("app.asar")>=0){
+    //production
+  } else {
+    //development
+    win.webContents.openDevTools()
+  }
 
   // Test active push message to Renderer-process. 主进程渲染消息
   win.webContents.on('did-finish-load', () => {

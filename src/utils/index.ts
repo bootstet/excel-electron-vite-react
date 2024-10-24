@@ -85,4 +85,8 @@ export const downloadFile = (url: string, name?: string, fn?: () => void) => {
       fn && fn()
       document.body.removeChild(link);
     })
+    .catch((err: Error) => {
+      fn && fn()
+      console.error('err', err)
+    })
 }

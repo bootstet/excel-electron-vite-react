@@ -226,8 +226,9 @@ function App() {
           await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
           if (index === imageFiles.length - 1) {
             await generatePackage(zipFileName, `./${targetFileName}`)
+            const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
             setTimeout(() => {
-              downloadFile(`./${zipFileName}`, flowerName, () => setSpinning(false))
+              downloadFile(downUrl, flowerName, () => setSpinning(false))
             }, 500);
           }
         } else {
