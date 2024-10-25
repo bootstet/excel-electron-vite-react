@@ -20,7 +20,7 @@ export const findStringAndNextWord = (str: string, target: string) => {
 }
 
 /**
- * @description: 获取字符串中的数字
+ * @description: 生成压缩包
  * @param {string} zipName: 压缩包名称 url：目标文件路径
  */
 export const generatePackage = (zipName: string, url: string) => {

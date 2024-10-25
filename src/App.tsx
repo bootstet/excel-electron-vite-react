@@ -184,59 +184,70 @@ function App() {
     setSpinning(true)
 
     console.log('directoryPath', directoryPath)
-    // node 访问文件系统
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    fs.readdir(directoryPath, async (err: any, files: any[]) => {
-      console.log('files', files)
 
-      const imageFiles = files.filter((file: string | string[]) => {
-        let bol = false
-        for (const key in target) {
-          if (file.includes(key)) {
-            return bol = true
+    try {
+      // node 访问文件系统
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      fs.readdir(directoryPath, async (err: any, files: any[]) => {
+        console.log('files', files)
+
+        const imageFiles = files.filter((file: string | string[]) => {
+          let bol = false
+          for (const key in target) {
+            if (file.includes(key)) {
+              return bol = true
+            } else {
+              bol = false
+            }
+          }
+          return bol
+        })
+
+        console.log('imageFiles', imageFiles)
+
+        // 新建一个文件夹
+        const baseDir = path.join('./', targetFileName)
+        if (fs.existsSync(baseDir)) {
+          clearDir(baseDir)
+        }
+        console.log('baseDir', baseDir)
+        await fsExtra.ensureDir(baseDir)
+        let imageTotal = 0 
+        imageFiles.forEach(async (file: string, index: number) => {
+          console.log('filename', file)
+          
+          const baseName = file.split('.')[0]
+          const filePath = path.join(folderPath, file);
+
+          let keyBaseName = ''
+          for (const key in target) {
+            if (file.includes(key)) {
+              keyBaseName = key
+            }
+          }
+          imageTotal = imageTotal + target[keyBaseName]
+          // 压缩包中的文件名
+          const downName = `${baseName}-${target[keyBaseName]}.jpg`
+          console.log('downName', downName)
+          if (fs.existsSync(filePath)) {
+            await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
+            if (index === imageFiles.length - 1) {
+              await generatePackage(`${zipFileName}`, `./${targetFileName}`)
+              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              setTimeout(() => {
+                downloadFile(downUrl, `生成印花文件共${imageTotal}`, () => setSpinning(false))
+              }, 500);
+            }
           } else {
-            bol = false
+            console.log(`${file} does not exist`);
           }
-        }
-        return bol
-      })
+        });
 
-      // 新建一个文件夹
-      const baseDir = path.join('./', targetFileName)
-      if (fs.existsSync(baseDir)) {
-        clearDir(baseDir)
-      }
-      await fsExtra.ensureDir(baseDir)
-
-      imageFiles.forEach(async (file: string, index: number) => {
-        console.log('filename', file)
-        const baseName = file.split('.')[0]
-        const filePath = path.join(folderPath, file);
-
-        let keyBaseName = ''
-        for (const key in target) {
-          if (file.includes(key)) {
-            keyBaseName = key
-          }
-        }
-        // 压缩包中的文件名
-        const downName = `${baseName}-${target[keyBaseName]}.jpg`
-        console.log('downName', downName)
-        if (fs.existsSync(filePath)) {
-          await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
-          if (index === imageFiles.length - 1) {
-            await generatePackage(zipFileName, `./${targetFileName}`)
-            const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
-            setTimeout(() => {
-              downloadFile(downUrl, flowerName, () => setSpinning(false))
-            }, 500);
-          }
-        } else {
-          console.log(`${file} does not exist`);
-        }
       });
-
-    });
+    } catch (error) {
+      console.error(error)
+    }
+    
   }
   const buildTotalImageFile = () => {
     const targetFileName = 'imagesTotal'
@@ -285,7 +296,7 @@ function App() {
       Object.keys(transformData).map(async (item, index) => {
         const ind = transformData[item].length
         imageTotal = imageTotal + (item as unknown as number) * ind
-        const curDirName = `${item}.${ind}_共${imageTotal}`
+        const curDirName = `${item}.${ind}_共${(item as unknown as number) * ind}`
 
         try {
           const newPath = `${baseDir}\\${curDirName}`
@@ -310,18 +321,17 @@ function App() {
             if (num === transformData[item].length - 1 && index === Object.keys(transformData).length - 1) {
 
               await generatePackage(zipFileName, `./${targetFileName}`)
+              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
               setTimeout(() => {
-                downloadFile(`./${zipFileName}`, flowerName, () => setSpinning(false))
+                downloadFile(downUrl, `生成印花文件（脚哥专用）共${imageTotal}`, () => setSpinning(false))
               }, 500);
             }
           });
-          console.log('文件夹创建成功!');
+
         } catch (err) {
           console.error('创建文件夹时发生错误:', err);
         }
       })
-
-
     });
   }
   const buildGoodsImageFile = () => {
@@ -357,10 +367,12 @@ function App() {
         clearDir(baseDir)
       }
       await fsExtra.ensureDir(baseDir) // 确保目录存在  
+      let imageTotal = 0
       Object.keys(existImagesObj).map(async (item, index) => {
         const existArr = imageFiles.filter((fileName: string | string[]) => fileName.includes(item))
         const imageNum = Number(existImagesObj[item]) // 每张图片数量
         const subdirectoryPath = path.join('./', subdirectoryName, `A${index + 1}-${item}-(${imageNum * existArr.length})`)
+        imageTotal += imageNum * existArr.length
         await fsExtra.ensureDir(subdirectoryPath)
         existArr.forEach(async (element: string, num: number) => {
           const sourcePath = `${directoryPath}\\${element}`
@@ -370,8 +382,9 @@ function App() {
           await fsExtra.copy(sourcePath, filePath)
           if (num === existArr.length - 1 && index === Object.keys(existImagesObj).length - 1) {
             await generatePackage(zipFileName, `./${targetFileName}`)
+            const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
             setTimeout(() => {
-              downloadFile(`./${zipFileName}`, goodsName, () => setSpinning(false))
+              downloadFile(downUrl, `生成拣货文件共${imageTotal}`, () => setSpinning(false))
             }, 500);
           }
         })
@@ -395,6 +408,7 @@ function App() {
         }
       })
       console.log('noExistImagesObj', noExistImagesObj)
+      console.log('existImagesObj', existImagesObj)
       const data = Object.keys(noExistImagesObj).join(',')
       if (Object.keys(data).length > 0) {
         Modal.error({
@@ -467,17 +481,17 @@ function App() {
           autoComplete="off"
           onValuesChange={filedChange}
         >
-          <Form.Item label="引花名" name="flowerName">
+          {/* <Form.Item label="引花名" name="flowerName">
             <Input />
           </Form.Item>
           <Form.Item label="拣货名" name="goodsName">
             <Input />
-          </Form.Item>
+          </Form.Item> */}
         </Form>
         <div className="btnCon">
-          <Button className="btn" onClick={buildFlowerImageFile} disabled={!flowerName}>生成印花文件</Button>
-          <Button  onClick={buildTotalImageFile} disabled={!flowerName} className="ml-20">生成印花文件(脚哥专用)</Button>
-          <Button onClick={buildGoodsImageFile} disabled={!goodsName} className="ml-20">生成拣货文件</Button>
+          <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
+          <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
+          <Button onClick={buildGoodsImageFile} className="ml-20">生成拣货文件</Button>
         </div>
         <Spin spinning={spinning} fullscreen tip="生成中..." />
       </main>
