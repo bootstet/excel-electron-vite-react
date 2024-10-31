@@ -1,9 +1,15 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { AxiosResponse } from "axios"
+import axios from "axios"
+// import archiver from "archiver"
 
-const axios = require('axios')
-const archiver = require('archiver')
-const fs = require('fs')
+// const axios = require('axios')
+// const archiver = require('archiver')
+// const fs = require('fs')
+
+const archiver = window.ipcRenderer.nodeModules.archiver
+
+const fs = window.ipcRenderer.nodeModules.fs
 
 /**
  * 

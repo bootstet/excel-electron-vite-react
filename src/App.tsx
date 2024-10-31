@@ -9,9 +9,12 @@ import './App.css'
 import * as XLSX from 'xlsx';
 import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
 
-const path = require('path')
-const fs = require('fs')
-const fsExtra = require('fs-extra');
+const path = window.ipcRenderer.nodeModules.path
+const fs = window.ipcRenderer.nodeModules.fs
+const fsExtra = window.ipcRenderer.nodeModules.fsExtra
+const dialog = window.ipcRenderer.nodeModules.remote.dialog
+
+
 
 const endTime = '2024/12/30 23:59:59'
 
@@ -21,9 +24,12 @@ const endTime = '2024/12/30 23:59:59'
  */
 function emptyDir(path: string) {
   const files = fs.readdirSync(path);
+  console.log('fs', fs)
+  console.log('files', files)
   files.forEach((file: string) => {
     const filePath = `${path}/${file}`;
     const stats = fs.statSync(filePath);
+    console.log('stats', stats)
     if (stats.isDirectory()) {
       emptyDir(filePath);
     } else {
@@ -212,10 +218,10 @@ function App() {
         }
         console.log('baseDir', baseDir)
         await fsExtra.ensureDir(baseDir)
-        let imageTotal = 0 
+        let imageTotal = 0
         imageFiles.forEach(async (file: string, index: number) => {
           console.log('filename', file)
-          
+
           const baseName = file.split('.')[0]
           const filePath = path.join(folderPath, file);
 
@@ -247,13 +253,13 @@ function App() {
     } catch (error) {
       console.error(error)
     }
-    
+
   }
   const buildTotalImageFile = () => {
     const targetFileName = 'imagesTotal'
     const zipFileName = 'zipTotal.zip'
     const target: { [key: string]: number } = paramsResult
-    
+
     setSpinning(true)
 
     fs.readdir(directoryPath, async (err: any, files: any[]) => {
@@ -280,7 +286,7 @@ function App() {
       }
 
       await fsExtra.ensureDir(baseDir)
-      
+
       const transformData: any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
         const val = existImagesObj[cur]
         if (val in acc) {
@@ -423,6 +429,17 @@ function App() {
       }
     });
   }
+
+  const openDialog = () => {
+
+    const result = dialog.showOpenDialog({ 
+      title: '请选择图片文件夹,将在这个文件夹中筛选excel中的图片',
+      properties: ['openDirectory ', 'showHiddenFiles'] 
+    })
+
+    console.log('result', result)
+  }
+
   const props: any = {
     name: 'file',
     action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
@@ -490,8 +507,9 @@ function App() {
         </Form>
         <div className="btnCon">
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
-          <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
+          <Button onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} className="ml-20">生成拣货文件</Button>
+          {/* <Button onClick={openDialog} className="ml-20">选择文件</Button> */}
         </div>
         <Spin spinning={spinning} fullscreen tip="生成中..." />
       </main>

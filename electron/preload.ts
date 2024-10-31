@@ -1,4 +1,4 @@
-import { ipcRenderer, contextBridge } from 'electron'
+import { ipcRenderer, contextBridge, dialog } from 'electron'
 
 
 // --------- Expose some API to the Renderer process ---------
@@ -38,7 +38,10 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   },
   nodeModules: {
     fs: require('fs'),
+    archiver: require('archiver'),
     path: require('path'),
+    fsExtra: require('fs-extra'),
+    remote: require('@electron/remote'),
   }
 })
 

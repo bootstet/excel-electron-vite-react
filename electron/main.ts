@@ -36,10 +36,10 @@ function createWindow() {
     height: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true, // 隔离
-      contextIsolation: false, // 渲染进程是否使用node
-      webSecurity: false // 是否禁用安全策略
+      contextIsolation: true, // 渲染进程是否使用node
+      webSecurity: false, // 是否禁用安全策略
     },
   })
 
@@ -62,8 +62,11 @@ function createWindow() {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
-    //打开 DevTools
-    // win.webContents.openDevTools();
+
+  //增加该配置 解决dialog用不了问题，具体见 https://blog.csdn.net/mc519677263/article/details/124853807
+  require('@electron/remote/main').enable(win.webContents)
+  //主进程引入
+  require('@electron/remote/main').initialize()
 }
 
 
