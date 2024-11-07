@@ -6,13 +6,16 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+/images/**/*
+
 /imagesFlower/**/*
 /imagesGoods/**/*
 /imagesTotal/**/*
-/images/**/*
+/imagesLayout/**/*
 zipFlower.zip
 zipGoods.zip
 zipTotal.zip
+zipLayout.zip
 
 
 

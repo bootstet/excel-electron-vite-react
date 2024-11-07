@@ -90,3 +90,26 @@ export const downloadFile = (url: string, name?: string, fn?: () => void) => {
       console.error('err', err)
     })
 }
+
+
+
+// Number.prototype?.az = function(n = 2) {
+// 	let s = "";
+// 	for (let i = 1; i < n; i++) {
+// 		s += '0';
+// 	}
+// 	return (s + this).slice(-1 * n);
+// }
+
+Object.defineProperty(Number.prototype, 'az', {
+  value: function(n = 2) {
+    let s = "";
+    for (let i = 1; i < n; i++) {
+      s += '0';
+    }
+    return (s + this).slice(-1 * n);
+  },
+  writable: true,
+  configurable: true
+});
+

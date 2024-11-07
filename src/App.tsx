@@ -15,6 +15,12 @@ const fsExtra = require('fs-extra');
 
 const endTime = '2024/12/30 23:59:59'
 
+const sm = 3
+const md = 6
+
+
+
+
 /**
  * 删除文件夹下所有问价及将文件夹下所有文件清空
  * @param {*} path 
@@ -181,6 +187,12 @@ function App() {
     const targetFileName = 'imagesFlower'
     const zipFileName = 'zipFlower.zip'
     const target: { [key: string]: number } = paramsResult
+    console.log('paramsResult', paramsResult)
+
+    if (Object.keys(target).length === 0) {
+      message.error('没有读取到表格数据，请先上传表格！')
+      return
+    }
     setSpinning(true)
 
     console.log('directoryPath', directoryPath)
@@ -190,6 +202,10 @@ function App() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fs.readdir(directoryPath, async (err: any, files: any[]) => {
         console.log('files', files)
+        if (!files) {
+          setSpinning(false)
+          return message.error("没有找到images文件，请先检查images文件！")
+        }
 
         const imageFiles = files.filter((file: string | string[]) => {
           let bol = false
@@ -255,9 +271,17 @@ function App() {
     const target: { [key: string]: number } = paramsResult
     
     setSpinning(true)
+    if (Object.keys(target).length === 0) {
+      message.error('没有读取到表格数据，请先上传表格！')
+      setSpinning(false)
+      return
+    }
 
     fs.readdir(directoryPath, async (err: any, files: any[]) => {
-
+      if (!files) {
+        setSpinning(false)
+        return message.error("没有找到images文件，请先检查images文件！")
+      }
       const existImagesObj: any = {} // 存在的图片
       const noExistImagesObj: any = {} // 不存在的图片
       const imageFiles = files.filter((file: string | string[]) => {
@@ -274,7 +298,14 @@ function App() {
         return bol
       })
 
-      const baseDir = path.join('./', targetFileName)
+
+      
+      if (Object.keys(existImagesObj).length === 0) {
+        message.error('无存在的图片！请检查images是否存在图片！')
+        setSpinning(false)
+        return
+      }
+      const baseDir = path.join('./', targetFileName) 
       if (fs.existsSync(baseDir)) {
         clearDir(baseDir)
       }
@@ -337,12 +368,20 @@ function App() {
   const buildGoodsImageFile = () => {
     const targetFileName = 'imagesGoods'
     const zipFileName = 'zipGoods.zip'
-    setSpinning(true)
 
     const target: { [key: string]: number } = paramsResult
+    console.log('target', target)
+    if (Object.keys(target).length === 0) {
+      message.error('没有读取到表格数据，请先上传表格！')
+      return
+    }
+    setSpinning(true)
     // node 访问文件系统
     fs.readdir(directoryPath, async (err: any, files: any[]) => {
-
+      if (!files) {
+        setSpinning(false)
+        return message.error("没有找到images文件，请先检查images文件！")
+      }
       const existImagesObj: any = {} // 存在的图片
       const noExistImagesObj: any = {} // 不存在的图片
       const imageFiles = files.filter((file: string | string[]) => {
@@ -390,6 +429,126 @@ function App() {
         })
       })
 
+    });
+  }
+
+  const generateLayoutFiles = () => {
+    
+    const targetFileName = 'imagesLayout'
+    const zipFileName = 'zipLayout.zip'
+    const target: { [key: string]: number } = paramsResult
+    
+    setSpinning(true)
+    if (Object.keys(target).length === 0) {
+      message.error('没有读取到表格数据，请先上传表格！')
+      setSpinning(false)
+      return
+    }
+
+    fs.readdir(directoryPath, async (err: any, files: any[]) => {
+      if (!files) {
+        setSpinning(false)
+        return message.error("没有找到images文件，请先检查images文件！")
+      }
+      const existImagesObj: any = {} // 存在的图片
+      const noExistImagesObj: any = {} // 不存在的图片
+      const imageFiles = files.filter((file: string | string[]) => {
+        let bol = false
+        for (const key in target) {
+          if (file.includes(key)) {
+            existImagesObj[key] = target[key]
+            return bol = true
+          } else {
+            noExistImagesObj[key] = target[key]
+            bol = false
+          }
+        }
+        return bol
+      })
+
+
+      
+      if (Object.keys(existImagesObj).length === 0) {
+        message.error('无存在的图片！请检查images是否存在图片！')
+        setSpinning(false)
+        return
+      }
+      const baseDir = path.join('./', targetFileName) 
+      if (fs.existsSync(baseDir)) {
+        clearDir(baseDir)
+      }
+
+      await fsExtra.ensureDir(baseDir)
+      
+      const transformImageData : any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
+        const val = existImagesObj[cur]
+        const obj: {[key: string]: string[]} =  val in acc ? acc[val] : {}
+        for (let i = 0; i < val; i++) {
+          const curKey = `${cur}_${i + 1}`
+          obj[curKey] = imageFiles.filter((item: string | string[]) => item.includes(cur))
+        }
+        acc[val] = obj
+        return acc
+      }, {})
+
+
+   
+      // 循环一遍，生成总数，然后根据总数生成一个数组
+      let imageTotal: number = 0
+
+      Object.keys(transformImageData).map((item) => {
+        Object.keys(transformImageData[item]).map(async (element) => {
+          imageTotal = imageTotal + transformImageData[item][element].length
+        })
+      })
+
+      console.log('imageTotal', imageTotal)
+      const layoutTotalNum: number = imageTotal % sm === 0 ? imageTotal  : imageTotal + (sm - imageTotal % sm)
+      console.log('layoutTotalNum', layoutTotalNum)
+      type TypeImageObj = {orgName: string, newName: string}
+      const emptyObj: TypeImageObj = {
+        orgName: '',
+        newName: ''
+      }
+      const totalImageArr: TypeImageObj[] = new Array(layoutTotalNum).fill(emptyObj)
+      // 往数组里面制定位置赛数据
+
+
+      Object.keys(transformImageData).map((item) => {
+        Object.keys(transformImageData[item]).map(async (element) => {
+          const firstEmptyIndex = totalImageArr.findIndex((e: any) => e.orgName === '')
+          transformImageData[item][element].map((e: any, k: number) => {
+            // const imageLength = transformImageData[item][element].length
+            const keyNum = firstEmptyIndex + md*k 
+            totalImageArr[keyNum] = {
+              orgName: e,
+              newName: `${keyNum.az(5)}_${k + 1}_${e}`
+              // newName: `${keyNum.az(5)}_${e}`
+            }
+          })
+        })
+      })
+      console.log('totalImageArr矩阵，长度并不代表实际个数', totalImageArr)
+      totalImageArr.forEach(async (item: any, index: number) => {
+        if (item.orgName !== '') {
+          const filePath = path.join(folderPath, item.orgName);
+          const newFilePath = path.join(baseDir, `${baseDir}\\${item.newName}`);
+          if (fs.existsSync(filePath)) {
+            await fsExtra.copy(filePath, newFilePath);
+            if (index === imageFiles.length - 1) {
+              await generatePackage(`${zipFileName}`, `./${targetFileName}`)
+              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              setTimeout(() => {
+                downloadFile(downUrl, `生成排版${imageTotal}`, () => setSpinning(false))
+              }, 500);
+            }
+          } else {
+            console.log(`${item.orgName} does not exist`);
+          }
+        }
+      })
+
+      
     });
   }
 
@@ -492,8 +651,9 @@ function App() {
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
           <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} className="ml-20">生成拣货文件</Button>
+          <Button onClick={generateLayoutFiles} className="ml-20">排版</Button>
         </div>
-        <Spin spinning={spinning} fullscreen tip="生成中..." />
+        <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />
       </main>
     </ConfigProvider>
   );
