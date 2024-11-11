@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from 'react'
-import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin } from 'antd';
+import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popover } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from "react-router-dom";
 import './App.css'
@@ -17,7 +17,7 @@ const endTime = '2024/12/30 23:59:59'
 
 const sm = 3
 const md = 6
-
+const layoutContent = '只计算一套小于10张的图片'
 
 
 
@@ -432,8 +432,8 @@ function App() {
     });
   }
 
-  const generateLayoutFiles = () => {
-    
+  const generateLayoutFiles = (num : number)  => {
+    console.log('num', num)
     const targetFileName = 'imagesLayout'
     const zipFileName = 'zipLayout.zip'
     const target: { [key: string]: number } = paramsResult
@@ -498,7 +498,9 @@ function App() {
 
       Object.keys(transformImageData).map((item) => {
         Object.keys(transformImageData[item]).map(async (element) => {
-          imageTotal = imageTotal + transformImageData[item][element].length
+          if (num && Number(item) < num) {
+            imageTotal = imageTotal + transformImageData[item][element].length 
+          }
         })
       })
 
@@ -513,12 +515,15 @@ function App() {
       const totalImageArr: TypeImageObj[] = new Array(layoutTotalNum).fill(emptyObj)
       // 往数组里面制定位置赛数据
 
-
+      console.log("transformImageData", transformImageData)
       Object.keys(transformImageData).map((item) => {
         Object.keys(transformImageData[item]).map(async (element) => {
           const firstEmptyIndex = totalImageArr.findIndex((e: any) => e.orgName === '')
           transformImageData[item][element].map((e: any, k: number) => {
             // const imageLength = transformImageData[item][element].length
+            if (num && Number(item) >= num) {
+              return 
+            }
             const keyNum = firstEmptyIndex + md*k 
             totalImageArr[keyNum] = {
               orgName: e,
@@ -651,7 +656,11 @@ function App() {
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
           <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} className="ml-20">生成拣货文件</Button>
-          <Button onClick={generateLayoutFiles} className="ml-20">排版</Button>
+          <Button onClick={() => generateLayoutFiles(1000)} className="ml-20">排版</Button>
+          <Popover content={layoutContent} title="">
+            <Button onClick={() => generateLayoutFiles(10)} className="ml-20">排版小于10</Button>
+          </Popover>
+          
         </div>
         <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />
       </main>
