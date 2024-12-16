@@ -13,7 +13,7 @@ const path = require('path')
 const fs = require('fs')
 const fsExtra = require('fs-extra');
 
-const endTime = '2024/12/30 23:59:59'
+const endTime = '2025/06/30 23:59:59'
 
 const sm = 3
 const md = 6
@@ -154,7 +154,7 @@ function App() {
           const result = data.reduce((acc, cur) => {
             const key = findStringAndNextWord(cur['商品信息'], 'SKC：')
             if (key) {
-              acc[key] = cur['数量']
+              acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
             }
             return acc
           }, {})
@@ -432,7 +432,7 @@ function App() {
     });
   }
 
-  const generateLayoutFiles = (num : number)  => {
+  const generateLayoutFiles : (num: number) => void = (num : number)  => {
     console.log('num', num)
     const targetFileName = 'imagesLayout'
     const zipFileName = 'zipLayout.zip'
