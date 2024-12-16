@@ -34,7 +34,7 @@ function emptyDir(path: string) {
       emptyDir(filePath);
     } else {
       fs.unlinkSync(filePath);
-      console.log(`删除${file}文件成功`);
+      // console.log(`删除${file}文件成功`);
     }
   });
 }
@@ -144,7 +144,6 @@ function App() {
           }, {})
           return transResult
         })
-        console.log('表格数据', data)
 
         if (data && data.length < 1) {
           message.error('表格中没有数据,请重新上传');
@@ -158,14 +157,13 @@ function App() {
             }
             return acc
           }, {})
-          console.log('result', Object.keys(result))
           info.onProgress({ percent: 100 }, info.file);
           info.onSuccess(info.res, info.file);
           setParamsResult(result)
 
           setSpinning(false)
           getNoExistData(result)
-          console.log('result', result)
+          console.log('excel中skc数据', result)
 
         }
       } catch (e) {
@@ -187,7 +185,6 @@ function App() {
     const targetFileName = 'imagesFlower'
     const zipFileName = 'zipFlower.zip'
     const target: { [key: string]: number } = paramsResult
-    console.log('paramsResult', paramsResult)
 
     if (Object.keys(target).length === 0) {
       message.error('没有读取到表格数据，请先上传表格！')
@@ -195,13 +192,11 @@ function App() {
     }
     setSpinning(true)
 
-    console.log('directoryPath', directoryPath)
 
     try {
       // node 访问文件系统
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fs.readdir(directoryPath, async (err: any, files: any[]) => {
-        console.log('files', files)
         if (!files) {
           setSpinning(false)
           return message.error("没有找到images文件，请先检查images文件！")
@@ -219,18 +214,15 @@ function App() {
           return bol
         })
 
-        console.log('imageFiles', imageFiles)
 
         // 新建一个文件夹
         const baseDir = path.join('./', targetFileName)
         if (fs.existsSync(baseDir)) {
           clearDir(baseDir)
         }
-        console.log('baseDir', baseDir)
         await fsExtra.ensureDir(baseDir)
         let imageTotal = 0 
         imageFiles.forEach(async (file: string, index: number) => {
-          console.log('filename', file)
           
           const baseName = file.split('.')[0]
           const filePath = path.join(folderPath, file);
@@ -244,7 +236,6 @@ function App() {
           imageTotal = imageTotal + target[keyBaseName]
           // 压缩包中的文件名
           const downName = `${baseName}-${target[keyBaseName]}.jpg`
-          console.log('downName', downName)
           if (fs.existsSync(filePath)) {
             await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
             if (index === imageFiles.length - 1) {
@@ -321,7 +312,6 @@ function App() {
         }
         return acc
       }, {})
-      console.log('transformData', transformData)
       // 递归复制图片到中专文件夹
       let imageTotal: number = 0
       Object.keys(transformData).map(async (item, index) => {
@@ -370,7 +360,6 @@ function App() {
     const zipFileName = 'zipGoods.zip'
 
     const target: { [key: string]: number } = paramsResult
-    console.log('target', target)
     if (Object.keys(target).length === 0) {
       message.error('没有读取到表格数据，请先上传表格！')
       return
@@ -433,7 +422,6 @@ function App() {
   }
 
   const generateLayoutFiles : (num: number) => void = (num : number)  => {
-    console.log('num', num)
     const targetFileName = 'imagesLayout'
     const zipFileName = 'zipLayout.zip'
     const target: { [key: string]: number } = paramsResult
@@ -504,9 +492,7 @@ function App() {
         })
       })
 
-      console.log('imageTotal', imageTotal)
       const layoutTotalNum: number = imageTotal % sm === 0 ? imageTotal  : imageTotal + (sm - imageTotal % sm)
-      console.log('layoutTotalNum', layoutTotalNum)
       type TypeImageObj = {orgName: string, newName: string}
       const emptyObj: TypeImageObj = {
         orgName: '',
@@ -515,7 +501,6 @@ function App() {
       const totalImageArr: TypeImageObj[] = new Array(layoutTotalNum).fill(emptyObj)
       // 往数组里面制定位置赛数据
 
-      console.log("transformImageData", transformImageData)
       Object.keys(transformImageData).map((item) => {
         Object.keys(transformImageData[item]).map(async (element) => {
           const firstEmptyIndex = totalImageArr.findIndex((e: any) => e.orgName === '')
@@ -559,10 +544,8 @@ function App() {
 
   const getNoExistData = (result: unknown) => {
     fs.readdir(directoryPath, async (err: any, files: any[]) => {
-
       const existImagesObj: any = {} // 存在的图片
       const noExistImagesObj: any = {} // 不存在的图片
-      console.log('files', files)
 
       Object.keys(result as any).map((item: any) => {
         if (files.some((file: string | string[]) => file.includes(item))) {
