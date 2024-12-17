@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { AxiosResponse } from "axios"
 
-const axios = require('axios')
-const archiver = require('archiver')
-const fs = require('fs')
+// const axios = require('axios')
+// const archiver = require('archiver')
+// const fs = require('fs')
+import axios from 'axios'
+
+// const axios = window.ipcRenderer.nodeModules.axios
+// const archiver = window.ipcRenderer.nodeModules.archiver
+// const fs = window.ipcRenderer.nodeModules.fs
 
 /**
  * 
@@ -31,6 +36,8 @@ export const generatePackage = (zipName: string, url: string) => {
         const archive = archiver('zip', {
           zlib: { level: 9 } // 设置压缩级别
         });
+        
+        console.log('archive', archive)
 
         // 监听错误事件
         archive.on('error', function (err: Error) {
@@ -56,7 +63,7 @@ export const generatePackage = (zipName: string, url: string) => {
           console.log('The file has been finalized and the output file descriptor has finseed.');
         })
       } catch (error) {
-        reject()
+        reject(error)
       }
   })
  

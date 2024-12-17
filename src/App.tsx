@@ -5,13 +5,18 @@ import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popo
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from "react-router-dom";
 import './App.css'
+// import { ipcRenderer } from 'electron';
 
 import * as XLSX from 'xlsx';
 import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
 
-const path = require('path')
-const fs = require('fs')
-const fsExtra = require('fs-extra');
+// const path = require('path')
+// const fs = require('fs')
+// const fsExtra = require('fs-extra');
+const path = window.ipcRenderer.nodeModules.path
+const fs = window.ipcRenderer.nodeModules.fs
+const fsExtra = window.ipcRenderer.nodeModules.fsExtra
+
 
 const endTime = '2025/06/30 23:59:59'
 
@@ -23,14 +28,17 @@ const layoutContent = '只计算一套小于10张的图片'
 
 /**
  * 删除文件夹下所有问价及将文件夹下所有文件清空
- * @param {*} path 
+ * @param {*} pathName 
  */
-function emptyDir(path: string) {
-  const files = fs.readdirSync(path);
+function emptyDir(pathName: string) {
+  console.log('fs', fs)
+  const files = fs.readdirSync(pathName);
   files.forEach((file: string) => {
-    const filePath = `${path}/${file}`;
+    const filePath = `${pathName}/${file}`;
+    console.log('filePath', filePath)
     const stats = fs.statSync(filePath);
-    if (stats.isDirectory()) {
+    console.log('stats', stats)
+    if (fs.lstatSync(filePath).isDirectory()) {
       emptyDir(filePath);
     } else {
       fs.unlinkSync(filePath);
@@ -41,38 +49,60 @@ function emptyDir(path: string) {
 
 /**
 * 删除指定路径下的所有空文件夹
-* @param {*} path 
+* @param {*} pathName 
 */
-function rmEmptyDir(path: string, level = 0) {
-  const files = fs.readdirSync(path);
+function rmEmptyDir(pathName: string, level = 0) {
+  const files = fs.readdirSync(pathName);
   if (files.length > 0) {
     let tempFile = 0;
     files.forEach((file: string) => {
       tempFile++;
-      rmEmptyDir(`${path}/${file}`, 1);
+      rmEmptyDir(`${pathName}/${file}`, 1);
     });
     if (tempFile === files.length && level !== 0) {
-      fs.rmdirSync(path);
+      fs.rmdirSync(pathName);
     }
   }
   else {
-    level !== 0 && fs.rmdirSync(path);
+    level !== 0 && fs.rmdirSync(pathName);
   }
 }
 
 /**
 * 清空指定路径下的所有文件及文件夹
-* @param {*} path 
+* @param {*} pathName
 */
-function clearDir(path: string) {
-  emptyDir(path);
-  rmEmptyDir(path);
+function clearDir(pathName: string) {
+  console.log('pathName', pathName)
+  emptyDir(pathName);
+  rmEmptyDir(pathName);
 
 }
 
+async function clearFolder(folderPath) {
+  try {
+      const files = await fs.readdir(folderPath);
+      for (const file of files) {
+          const filePath = path.join(folderPath, file);
+          const stat = await fs.stat(filePath);
+          if (stat.isDirectory()) {
+              // 如果是目录，递归删除
+              await fs.rm(filePath, { recursive: true, force: true });
+          } else {
+              // 如果是文件，直接删除
+              await fs.unlink(filePath);
+          }
+      }
+      console.log('Folder cleared successfully');
+  } catch (err) {
+      console.error('Error clearing folder:', err);
+  }
+}
 
-const folderPath = 'images'
-const directoryPath = path.join('./', folderPath);
+
+
+
+
 
 function App() {
   const [form] = Form.useForm();
@@ -81,6 +111,10 @@ function App() {
   const [goodsName, setGoodsName] = useState('');
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
+
+  const [folderPath, setFolderPath] = useState<string>('images')
+  // const folderPath = 'images'
+  const directoryPath = path.join('./', folderPath);
 
   const navigate = useNavigate();
 
@@ -218,7 +252,11 @@ function App() {
         // 新建一个文件夹
         const baseDir = path.join('./', targetFileName)
         if (fs.existsSync(baseDir)) {
-          clearDir(baseDir)
+          // clearDir(baseDir)
+          clearFolder(baseDir);
+          console.log('------')
+          console.log('baseDir', baseDir)
+          
         }
         await fsExtra.ensureDir(baseDir)
         let imageTotal = 0 
@@ -239,7 +277,9 @@ function App() {
           if (fs.existsSync(filePath)) {
             await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
             if (index === imageFiles.length - 1) {
+              console.log('down')
               await generatePackage(`${zipFileName}`, `./${targetFileName}`)
+              console.log('generatePackage')
               const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成印花文件共${imageTotal}`, () => setSpinning(false))
@@ -593,6 +633,10 @@ function App() {
     customRequest: HandleImportFile,
   };
 
+  window.ipcRenderer.on('choose-path', (_event, message) => {
+    console.log('选择文件夹:', message)
+  })
+
   return (
     <ConfigProvider
       theme={{
@@ -643,6 +687,10 @@ function App() {
           <Popover content={layoutContent} title="">
             <Button onClick={() => generateLayoutFiles(10)} className="ml-20">排版小于10</Button>
           </Popover>
+
+          <Button onClick={() => {
+            window.ipcRenderer.send('openWindow')
+          }}></Button>
           
         </div>
         <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />

@@ -36,3 +36,9 @@ window.ipcRenderer.send('renderer-process-message', encodeURIComponent('你好�
 window.ipcRenderer.invoke('renderer-process-message', encodeURIComponent('你好，主进程！2222')).then((result) => {
   console.log('渲染进程收到来自主进程的消息:', decodeURIComponent(result))
 })
+
+
+
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("process1222------------------", process);
+});

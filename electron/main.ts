@@ -1,10 +1,8 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
-console.log('__dirname', __dirname)
-console.log('dirname', dirname)
 
 
 // The built directory structure
@@ -38,7 +36,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       nodeIntegration: true, // 隔离
-      contextIsolation: false, // 渲染进程是否使用node
+      contextIsolation: true, // 渲染进程是否使用node
       webSecurity: false // 是否禁用安全策略
     },
   })
@@ -77,6 +75,23 @@ ipcMain.handle('renderer-process-message', async (event, message) => {
   console.log('event', event)
 })
 
+ipcMain.on('openWindow',(ev,target)=>{
+  // const newWin = new BrowserWindow({
+  //   width: 600,
+  //   height: 400,
+  // });
+  // newWin.loadURL('https://wwww.baidu.com');
+  dialog.showOpenDialog(win, {
+    properties: ['openFile', 'openDirectory'] // 可选属性，用于指定打开文件还是目录
+  }).then(result => {
+    if (!result.canceled) {
+      console.log('选定的文件路径:', result.filePaths);
+      win?.webContents.send('choose-path', result.filePaths)
+    }
+  });
+})
+
+
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
@@ -97,6 +112,10 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
+})
+
+app.on('browser-window-created', (_, window) => {
+  require("@electron/remote/main").enable(window.webContents)
 })
 
 app.whenReady().then(createWindow)

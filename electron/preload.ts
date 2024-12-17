@@ -39,7 +39,8 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   nodeModules: {
     fs: require('fs'),
     path: require('path'),
-  }
+    fsExtra: require('fs-extra'),
+  },
 })
 
 window.addEventListener('DOMContentLoaded', () => {
