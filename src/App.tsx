@@ -214,6 +214,12 @@ function App() {
           return bol
         })
 
+        console.log('imageFiles', imageFiles)
+        if (imageFiles.length === 0) {
+          setSpinning(false)
+          return message.error("无存在的图片！请检查images是否存在图片！")
+        }
+
 
         // 新建一个文件夹
         const baseDir = path.join('./', targetFileName)
@@ -249,10 +255,10 @@ function App() {
             console.log(`${file} does not exist`);
           }
         });
-
+        console.log('111')
       });
     } catch (error) {
-      console.error(error)
+      console.error('---', error)
     }
     
   }
@@ -386,6 +392,12 @@ function App() {
         }
         return bol
       })
+
+      console.log('imageFiles', imageFiles)
+      if (imageFiles.length === 0) {
+        setSpinning(false)
+        return message.error("无存在的图片！请检查images是否存在图片！")
+      }
 
       // 新建一个文件夹
       const subdirectoryName = targetFileName
