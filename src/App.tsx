@@ -8,7 +8,7 @@ import './App.css'
 // import { ipcRenderer } from 'electron';
 
 import * as XLSX from 'xlsx';
-import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
+import { downloadFile, findStringAndNextWord } from './utils';
 
 // const path = require('path')
 // const fs = require('fs')
@@ -16,6 +16,9 @@ import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
 const path = window.ipcRenderer.nodeModules.path
 const fs = window.ipcRenderer.nodeModules.fs
 const fsExtra = window.ipcRenderer.nodeModules.fsExtra
+const cwd = window.ipcRenderer.nodeModules.cwd
+const emptyDir = window.ipcRenderer.nodeModules.emptyDir
+const generatePackage = window.ipcRenderer.nodeModules.generatePackage
 
 
 const endTime = '2025/06/30 23:59:59'
@@ -26,26 +29,7 @@ const layoutContent = '只计算一套小于10张的图片'
 
 
 
-/**
- * 删除文件夹下所有问价及将文件夹下所有文件清空
- * @param {*} pathName 
- */
-function emptyDir(pathName: string) {
-  console.log('fs', fs)
-  const files = fs.readdirSync(pathName);
-  files.forEach((file: string) => {
-    const filePath = `${pathName}/${file}`;
-    console.log('filePath', filePath)
-    const stats = fs.statSync(filePath);
-    console.log('stats', stats)
-    if (fs.lstatSync(filePath).isDirectory()) {
-      emptyDir(filePath);
-    } else {
-      fs.unlinkSync(filePath);
-      // console.log(`删除${file}文件成功`);
-    }
-  });
-}
+
 
 /**
 * 删除指定路径下的所有空文件夹
@@ -112,9 +96,9 @@ function App() {
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
 
-  const [folderPath, setFolderPath] = useState<string>('images')
+  const [folderPath, setFolderPath] = useState<string>('')
   // const folderPath = 'images'
-  const directoryPath = path.join('./', folderPath);
+  const directoryPath = path.join('', folderPath);
 
   const navigate = useNavigate();
 
@@ -129,6 +113,10 @@ function App() {
 
   // 上传文件并解析成json
   const HandleImportFile = (info: any) => {
+    if (!folderPath) {
+      return  message.error('请先选择图片文件夹！')
+    }
+
     setSpinning(true)
     const files = info.file;
     // 获取文件名称
@@ -280,7 +268,7 @@ function App() {
               console.log('down')
               await generatePackage(`${zipFileName}`, `./${targetFileName}`)
               console.log('generatePackage')
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成印花文件共${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -382,7 +370,7 @@ function App() {
             if (num === transformData[item].length - 1 && index === Object.keys(transformData).length - 1) {
 
               await generatePackage(zipFileName, `./${targetFileName}`)
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成印花文件（脚哥专用）共${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -450,7 +438,7 @@ function App() {
           await fsExtra.copy(sourcePath, filePath)
           if (num === existArr.length - 1 && index === Object.keys(existImagesObj).length - 1) {
             await generatePackage(zipFileName, `./${targetFileName}`)
-            const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+            const downUrl = `file://${path.join(cwd(), zipFileName)}`
             setTimeout(() => {
               downloadFile(downUrl, `生成拣货文件共${imageTotal}`, () => setSpinning(false))
             }, 500);
@@ -567,7 +555,7 @@ function App() {
             await fsExtra.copy(filePath, newFilePath);
             if (index === imageFiles.length - 1) {
               await generatePackage(`${zipFileName}`, `./${targetFileName}`)
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成排版${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -635,6 +623,7 @@ function App() {
 
   window.ipcRenderer.on('choose-path', (_event, message) => {
     console.log('选择文件夹:', message)
+    setFolderPath(message[0])
   })
 
   return (
@@ -650,7 +639,7 @@ function App() {
       }}
     >
       <main className="min-h-screen">
-        <div className="flex  justify-between p-24">
+        <div className="flex   p-24">
           <Upload {...props}>
             <Button type="primary" icon={<UploadOutlined />}>
               导入表格
@@ -660,6 +649,12 @@ function App() {
               <p>2、输入相应印花名或者拣货名，点击相应按钮生成文件夹</p>
             </div>
           </Upload>
+
+
+          <Button onClick={() => {
+            window.ipcRenderer.send('openWindow')
+          }}>选择图片文件夹</Button>
+
         </div>
 
         <Form
@@ -688,9 +683,7 @@ function App() {
             <Button onClick={() => generateLayoutFiles(10)} className="ml-20">排版小于10</Button>
           </Popover>
 
-          <Button onClick={() => {
-            window.ipcRenderer.send('openWindow')
-          }}></Button>
+          
           
         </div>
         <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />

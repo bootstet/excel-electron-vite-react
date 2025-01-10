@@ -34,7 +34,8 @@ function createWindow() {
     height: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.mjs'),
+      // preload: path.join(__dirname, 'preload.mjs'),
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true, // 隔离
       contextIsolation: true, // 渲染进程是否使用node
       webSecurity: false // 是否禁用安全策略

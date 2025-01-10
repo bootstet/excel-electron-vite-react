@@ -1,15 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { AxiosResponse } from "axios"
-
-// const axios = require('axios')
-// const archiver = require('archiver')
-// const fs = require('fs')
 import axios from 'axios'
 
-// const axios = window.ipcRenderer.nodeModules.axios
-// const archiver = window.ipcRenderer.nodeModules.archiver
-// const fs = window.ipcRenderer.nodeModules.fs
-
+const archiver = window.ipcRenderer.nodeModules.archiver
+console.log('archiver', archiver)
 /**
  * 
  * @description: 获取SKC值
@@ -24,50 +18,7 @@ export const findStringAndNextWord = (str: string, target: string) => {
   return match ? match[1] : null
 }
 
-/**
- * @description: 生成压缩包
- * @param {string} zipName: 压缩包名称 url：目标文件路径
- */
-export const generatePackage = (zipName: string, url: string) => {
-  return new Promise((resolve, reject) => {
-      try {
-         // 创建一个文件写入流
-        const output = fs.createWriteStream(zipName);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // 设置压缩级别
-        });
-        
-        console.log('archive', archive)
 
-        // 监听错误事件
-        archive.on('error', function (err: Error) {
-          throw err;
-        });
-
-        // 将输出流管道到文件
-        archive.pipe(output);
-
-        // 添加整个文件夹到压缩包，假设文件夹名为'folderToZip'
-        // const folderPath = path.join(baseDirCopy, 'folderToZip');
-
-        archive.directory(url, false);
-
-        // 结束压缩过程
-        archive.finalize();
-        output.on('close', function() {
-          console.log(archive.pointer() + ' total bytes');
-          console.log('archiver has been finalized and the output file descriptor has closed.');
-          resolve('success')
-        });
-        output.on('finish', function() {
-          console.log('The file has been finalized and the output file descriptor has finseed.');
-        })
-      } catch (error) {
-        reject(error)
-      }
-  })
- 
-}
 
 /**
  * @description:下载文件
@@ -98,15 +49,6 @@ export const downloadFile = (url: string, name?: string, fn?: () => void) => {
     })
 }
 
-
-
-// Number.prototype?.az = function(n = 2) {
-// 	let s = "";
-// 	for (let i = 1; i < n; i++) {
-// 		s += '0';
-// 	}
-// 	return (s + this).slice(-1 * n);
-// }
 
 Object.defineProperty(Number.prototype, 'az', {
   value: function(n = 2) {
