@@ -74,7 +74,7 @@ function emptyDir(pathName: string) {
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {
     const [channel, listener] = args
-    console.log('ipcRenderer.on', channel)
+    // console.log('ipcRenderer.on', channel)
     return ipcRenderer.on(channel, (event, ...args) => listener(event, ...args))
   },
   off(...args: Parameters<typeof ipcRenderer.off>) {

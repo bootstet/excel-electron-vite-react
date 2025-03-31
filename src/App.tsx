@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from 'react'
-import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popover } from 'antd';
+import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popover, Radio, RadioChangeEvent } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from "react-router-dom";
 import './App.css'
@@ -9,6 +9,7 @@ import './App.css'
 
 import * as XLSX from 'xlsx';
 import { downloadFile, findStringAndNextWord } from './utils';
+import { CheckboxGroupProps } from 'antd/es/checkbox';
 
 // const path = require('path')
 // const fs = require('fs')
@@ -86,7 +87,11 @@ async function clearFolder(folderPath) {
 
 
 
-
+type CalculationType = 'skcNum' | 'skcCateLogNum'  // skc 或者 skc货号
+const calculationOptions:  CheckboxGroupProps<CalculationType>['options'] = [
+  { label: 'skc', value: 'skcNum' },
+  { label: 'skc货号', value: 'skcCateLogNum' },
+];
 
 function App() {
   const [form] = Form.useForm();
@@ -95,10 +100,13 @@ function App() {
   const [goodsName, setGoodsName] = useState('');
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
+  const [calculationType, setCalculationType] = useState<CalculationType>('skcNum')
+  const [excelTransResult, setExcelTransResult] = useState<any[]>([])
 
   const [folderPath, setFolderPath] = useState<string>('')
   // const folderPath = 'images'
   const directoryPath = path.join('', folderPath);
+
 
   const navigate = useNavigate();
 
@@ -166,28 +174,13 @@ function App() {
           }, {})
           return transResult
         })
-
+        // 储存转换的表格数据
+        setExcelTransResult(data)
         if (data && data.length < 1) {
           message.error('表格中没有数据,请重新上传');
           return;
         }
-        if (data && data.length > 0) {
-          const result = data.reduce((acc, cur) => {
-            const key = findStringAndNextWord(cur['商品信息'], 'SKC：')
-            if (key) {
-              acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
-            }
-            return acc
-          }, {})
-          info.onProgress({ percent: 100 }, info.file);
-          info.onSuccess(info.res, info.file);
-          setParamsResult(result)
-
-          setSpinning(false)
-          getNoExistData(result)
-          console.log('excel中skc数据', result)
-
-        }
+        calculationExcelData(data, info)
       } catch (e) {
         setSpinning(false)
         console.error('e', e)
@@ -196,6 +189,32 @@ function App() {
     };
     reader.readAsBinaryString(files);
   };
+
+  const calculationExcelData = (data: any, info?: any) => {
+    if (data && data.length > 0) {
+      const result = data.reduce((acc, cur) => {
+        const calculationKey = {'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：'}[calculationType]
+        console.log('calculationKey', calculationKey)
+        const key = findStringAndNextWord(cur['商品信息'], calculationKey)
+        if (key) {
+          acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
+        }
+        return acc
+      }, {})
+      if (info) {
+        info.onProgress({ percent: 100 }, info.file);
+        info.onSuccess(info.res, info.file);
+      }
+      setParamsResult(result)
+
+      setSpinning(false)
+      getNoExistData(result)
+      console.log('excel中skc数据', result)
+
+    }
+  }
+
+ 
   const filedChange = (changedValues: { flowerName: string; goodsName: string; }[], allValues: { flowerName: string; goodsName: string; }) => {
     const { flowerName, goodsName } = allValues;
     setFlowerName(flowerName);
@@ -610,14 +629,29 @@ function App() {
       }
     });
   }
+
+  const calculationOnChange = ({ target: { value } }: RadioChangeEvent) => {
+    setCalculationType(value);
+    
+
+  };
+
+  // 切换检索依据后，重新计算表格中的数据
+  useEffect(()=> {
+    calculationExcelData(excelTransResult)
+  }, [calculationType])
+
   const props: any = {
     name: 'file',
-    action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
+    action: '#',
     headers: {
       authorization: 'authorization-text',
     },
     maxCount: 1,
     onChange(info: { file: { status: string; name: any; }; fileList: any; }) {
+      console.log(123)
+      console.log('folderPath', folderPath)
+      
       if (info.file.status !== 'uploading') {
         console.log(info.file, info.fileList);
       }
@@ -653,12 +687,13 @@ function App() {
       <main className="min-h-screen">
         <div className="flex   p-24">
           <Upload {...props}>
-            <Button type="primary" icon={<UploadOutlined />}>
+            <Button type="primary" icon={<UploadOutlined />} disabled={!folderPath}>
               导入表格
             </Button>
             <div>
-              <p>1、上传表格</p>
-              <p>2、输入相应印花名或者拣货名，点击相应按钮生成文件夹</p>
+              <p>1、选择图片文件夹</p>
+              <p>2、上传表格</p>
+              <p>3、输入相应印花名或者拣货名，点击相应按钮生成文件夹</p>
             </div>
           </Upload>
 
@@ -685,7 +720,14 @@ function App() {
           <Form.Item label="拣货名" name="goodsName">
             <Input />
           </Form.Item> */}
+          <Form.Item label="检索依据">
+            <Radio.Group options={calculationOptions} onChange={calculationOnChange} value={calculationType} />
+          </Form.Item>
         </Form>
+        <div>
+
+          
+        </div>
         <div className="btnCon">
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
           <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
@@ -694,8 +736,6 @@ function App() {
           <Popover content={layoutContent} title="">
             <Button onClick={() => generateLayoutFiles(10)} className="ml-20">排版小于10</Button>
           </Popover>
-
-          
           
         </div>
         <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />

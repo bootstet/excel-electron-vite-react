@@ -30,7 +30,7 @@ let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1200,
+    width: 1400,
     height: 800,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     webPreferences: {
@@ -73,7 +73,6 @@ ipcMain.on('renderer-process-message', (event, message) => {
 // 渲染进程向主进程发送消息并异步等待结果，主进程接受
 ipcMain.handle('renderer-process-message', async (event, message) => {
   console.log('message', decodeURIComponent(message))
-  console.log('event', event)
 })
 
 ipcMain.on('openWindow',(ev,target)=>{

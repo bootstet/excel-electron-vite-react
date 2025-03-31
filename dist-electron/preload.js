@@ -48,7 +48,6 @@ function emptyDir(pathName) {
 electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args) {
     const [channel, listener] = args;
-    console.log("ipcRenderer.on", channel);
     return electron.ipcRenderer.on(channel, (event, ...args2) => listener(event, ...args2));
   },
   off(...args) {
