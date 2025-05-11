@@ -9,14 +9,41 @@ console.log('archiver', archiver)
  * @description: 获取SKC值
  */
 
-export const findStringAndNextWord = (str: string, target: string) => {
-  if (!str) {
-    return null
+const str1 = `str SKC：2266683033
+SKC货号：
+备货母单号：WP24091919262
+03
+备货单号：WB2409191308619
+创建时间：2024-09-19 07:22
+要求发货时间：2024-09-20
+07:22
+【VMI】     【JIT】     【加急】`
+
+const target1 = `SKC：,SKC货号：`
+
+
+
+
+export const findStringAndNextWord = (str, target) => {
+  if (!str) return ""; // 如果输入字符串为空，直接返回空
+
+  const targets = target.split(',').map(t => t.trim()); // 按逗号拆分，并去除两端空格
+
+  for (const currentTarget of targets) {
+    // 严格匹配：currentTarget 后面必须紧跟字母数字（不能是换行或空格）
+    const regex = new RegExp(`${currentTarget}([a-zA-Z0-9]+)`);
+    const match = str.match(regex);
+
+    if (match) {
+      return match[1] || ""; // 返回匹配的字母数字部分
+    }
   }
-  const regex = new RegExp(target + '(\\d+)')
-  const match = str.match(regex)
-  return match ? match[1] : null
-}
+
+  return ""; // 所有关键词都没匹配到，返回空字符串
+};
+
+
+
 
 
 

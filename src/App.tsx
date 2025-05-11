@@ -87,10 +87,11 @@ async function clearFolder(folderPath) {
 
 
 
-type CalculationType = 'skcNum' | 'skcCateLogNum'  // skc 或者 skc货号
+type CalculationType = 'skcNum' | 'skcCateLogNum' | 'skcAndCateLogNum'  // skc 或者 skc货号
 const calculationOptions:  CheckboxGroupProps<CalculationType>['options'] = [
   { label: 'skc', value: 'skcNum' },
   { label: 'skc货号', value: 'skcCateLogNum' },
+  { label: 'skc货号+skc', value: 'skcAndCateLogNum' },
 ];
 
 function App() {
@@ -180,6 +181,7 @@ function App() {
           message.error('表格中没有数据,请重新上传');
           return;
         }
+        console.log('data', data)
         calculationExcelData(data, info)
       } catch (e) {
         setSpinning(false)
@@ -192,10 +194,15 @@ function App() {
 
   const calculationExcelData = (data: any, info?: any) => {
     if (data && data.length > 0) {
+      console.log('data', data)
       const result = data.reduce((acc, cur) => {
-        const calculationKey = {'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：'}[calculationType]
+        const calculationKey = {'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：', 'skcAndCateLogNum': 'SKC：,SKC货号：'}[calculationType]
         console.log('calculationKey', calculationKey)
         const key = findStringAndNextWord(cur['商品信息'], calculationKey)
+        // if (calculationType === 'skcAndCateLogNum') {
+        //   key = findStringAndNextWord(cur['商品信息'], 'skcNum') || findStringAndNextWord(cur['商品信息'], 'skcCateLogNum')
+        // }
+        // console.log('key', key)
         if (key) {
           acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
         }
@@ -208,6 +215,7 @@ function App() {
       setParamsResult(result)
 
       setSpinning(false)
+      console.log('result', result)
       getNoExistData(result)
       console.log('excel中skc数据', result)
 
@@ -649,7 +657,6 @@ function App() {
     },
     maxCount: 1,
     onChange(info: { file: { status: string; name: any; }; fileList: any; }) {
-      console.log(123)
       console.log('folderPath', folderPath)
       
       if (info.file.status !== 'uploading') {
