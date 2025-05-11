@@ -1,17 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { useEffect, useState } from 'react'
-import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popover } from 'antd';
+import { Upload, Button, message, Modal, Form, Input, ConfigProvider, Spin, Popover, Radio, RadioChangeEvent } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from "react-router-dom";
 import './App.css'
+// import { ipcRenderer } from 'electron';
 
 import * as XLSX from 'xlsx';
-import { downloadFile, findStringAndNextWord, generatePackage } from './utils';
+import { downloadFile, findStringAndNextWord } from './utils';
+import { CheckboxGroupProps } from 'antd/es/checkbox';
 
-const path = require('path')
-const fs = require('fs')
-const fsExtra = require('fs-extra');
+// const path = require('path')
+// const fs = require('fs')
+// const fsExtra = require('fs-extra');
+const path = window.ipcRenderer.nodeModules.path
+const fs = window.ipcRenderer.nodeModules.fs
+const fsExtra = window.ipcRenderer.nodeModules.fsExtra
+const cwd = window.ipcRenderer.nodeModules.cwd
+const emptyDir = window.ipcRenderer.nodeModules.emptyDir
+const generatePackage = window.ipcRenderer.nodeModules.generatePackage
+
 
 const endTime = '2025/06/30 23:59:59'
 
@@ -21,58 +30,69 @@ const layoutContent = '只计算一套小于10张的图片'
 
 
 
-/**
- * 删除文件夹下所有问价及将文件夹下所有文件清空
- * @param {*} path 
- */
-function emptyDir(path: string) {
-  const files = fs.readdirSync(path);
-  files.forEach((file: string) => {
-    const filePath = `${path}/${file}`;
-    const stats = fs.statSync(filePath);
-    if (stats.isDirectory()) {
-      emptyDir(filePath);
-    } else {
-      fs.unlinkSync(filePath);
-      // console.log(`删除${file}文件成功`);
-    }
-  });
-}
+
 
 /**
 * 删除指定路径下的所有空文件夹
-* @param {*} path 
+* @param {*} pathName 
 */
-function rmEmptyDir(path: string, level = 0) {
-  const files = fs.readdirSync(path);
+function rmEmptyDir(pathName: string, level = 0) {
+  const files = fs.readdirSync(pathName);
   if (files.length > 0) {
     let tempFile = 0;
     files.forEach((file: string) => {
       tempFile++;
-      rmEmptyDir(`${path}/${file}`, 1);
+      rmEmptyDir(`${pathName}/${file}`, 1);
     });
     if (tempFile === files.length && level !== 0) {
-      fs.rmdirSync(path);
+      fs.rmdirSync(pathName);
     }
   }
   else {
-    level !== 0 && fs.rmdirSync(path);
+    level !== 0 && fs.rmdirSync(pathName);
   }
 }
 
 /**
 * 清空指定路径下的所有文件及文件夹
-* @param {*} path 
+* @param {*} pathName
 */
-function clearDir(path: string) {
-  emptyDir(path);
-  rmEmptyDir(path);
+function clearDir(pathName: string) {
+  console.log('pathName', pathName)
+  emptyDir(pathName);
+  rmEmptyDir(pathName);
 
 }
 
+async function clearFolder(folderPath) {
+  try {
+      const files = await fs.readdir(folderPath);
+      for (const file of files) {
+          const filePath = path.join(folderPath, file);
+          const stat = await fs.stat(filePath);
+          if (stat.isDirectory()) {
+              // 如果是目录，递归删除
+              await fs.rm(filePath, { recursive: true, force: true });
+          } else {
+              // 如果是文件，直接删除
+              await fs.unlink(filePath);
+          }
+      }
+      console.log('Folder cleared successfully');
+  } catch (err) {
+      console.error('Error clearing folder:', err);
+  }
+}
 
-const folderPath = 'images'
-const directoryPath = path.join('./', folderPath);
+
+
+
+type CalculationType = 'skcNum' | 'skcCateLogNum' | 'skcAndCateLogNum'  // skc 或者 skc货号
+const calculationOptions:  CheckboxGroupProps<CalculationType>['options'] = [
+  { label: 'skc', value: 'skcNum' },
+  { label: 'skc货号', value: 'skcCateLogNum' },
+  { label: 'skc货号+skc', value: 'skcAndCateLogNum' },
+];
 
 function App() {
   const [form] = Form.useForm();
@@ -81,6 +101,13 @@ function App() {
   const [goodsName, setGoodsName] = useState('');
   const [paramsResult, setParamsResult] = useState({});
   const [spinning, setSpinning] = useState(false)
+  const [calculationType, setCalculationType] = useState<CalculationType>('skcNum')
+  const [excelTransResult, setExcelTransResult] = useState<any[]>([])
+
+  const [folderPath, setFolderPath] = useState<string>('')
+  // const folderPath = 'images'
+  const directoryPath = path.join('', folderPath);
+
 
   const navigate = useNavigate();
 
@@ -95,6 +122,10 @@ function App() {
 
   // 上传文件并解析成json
   const HandleImportFile = (info: any) => {
+    if (!folderPath) {
+      return  message.error('请先选择图片文件夹！')
+    }
+
     setSpinning(true)
     const files = info.file;
     // 获取文件名称
@@ -144,28 +175,14 @@ function App() {
           }, {})
           return transResult
         })
-
+        // 储存转换的表格数据
+        setExcelTransResult(data)
         if (data && data.length < 1) {
           message.error('表格中没有数据,请重新上传');
           return;
         }
-        if (data && data.length > 0) {
-          const result = data.reduce((acc, cur) => {
-            const key = findStringAndNextWord(cur['商品信息'], 'SKC：')
-            if (key) {
-              acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
-            }
-            return acc
-          }, {})
-          info.onProgress({ percent: 100 }, info.file);
-          info.onSuccess(info.res, info.file);
-          setParamsResult(result)
-
-          setSpinning(false)
-          getNoExistData(result)
-          console.log('excel中skc数据', result)
-
-        }
+        console.log('data', data)
+        calculationExcelData(data, info)
       } catch (e) {
         setSpinning(false)
         console.error('e', e)
@@ -174,6 +191,38 @@ function App() {
     };
     reader.readAsBinaryString(files);
   };
+
+  const calculationExcelData = (data: any, info?: any) => {
+    if (data && data.length > 0) {
+      console.log('data', data)
+      const result = data.reduce((acc, cur) => {
+        const calculationKey = {'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：', 'skcAndCateLogNum': 'SKC：,SKC货号：'}[calculationType]
+        console.log('calculationKey', calculationKey)
+        const key = findStringAndNextWord(cur['商品信息'], calculationKey)
+        // if (calculationType === 'skcAndCateLogNum') {
+        //   key = findStringAndNextWord(cur['商品信息'], 'skcNum') || findStringAndNextWord(cur['商品信息'], 'skcCateLogNum')
+        // }
+        // console.log('key', key)
+        if (key) {
+          acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
+        }
+        return acc
+      }, {})
+      if (info) {
+        info.onProgress({ percent: 100 }, info.file);
+        info.onSuccess(info.res, info.file);
+      }
+      setParamsResult(result)
+
+      setSpinning(false)
+      console.log('result', result)
+      getNoExistData(result)
+      console.log('excel中skc数据', result)
+
+    }
+  }
+
+ 
   const filedChange = (changedValues: { flowerName: string; goodsName: string; }[], allValues: { flowerName: string; goodsName: string; }) => {
     const { flowerName, goodsName } = allValues;
     setFlowerName(flowerName);
@@ -224,7 +273,11 @@ function App() {
         // 新建一个文件夹
         const baseDir = path.join('./', targetFileName)
         if (fs.existsSync(baseDir)) {
-          clearDir(baseDir)
+          // clearDir(baseDir)
+          clearFolder(baseDir);
+          console.log('------')
+          console.log('baseDir', baseDir)
+          
         }
         await fsExtra.ensureDir(baseDir)
         let imageTotal = 0 
@@ -245,8 +298,10 @@ function App() {
           if (fs.existsSync(filePath)) {
             await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
             if (index === imageFiles.length - 1) {
+              console.log('down')
               await generatePackage(`${zipFileName}`, `./${targetFileName}`)
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              console.log('generatePackage')
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成印花文件共${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -348,7 +403,7 @@ function App() {
             if (num === transformData[item].length - 1 && index === Object.keys(transformData).length - 1) {
 
               await generatePackage(zipFileName, `./${targetFileName}`)
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成印花文件（脚哥专用）共${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -422,7 +477,7 @@ function App() {
           await fsExtra.copy(sourcePath, filePath)
           if (num === existArr.length - 1 && index === Object.keys(existImagesObj).length - 1) {
             await generatePackage(zipFileName, `./${targetFileName}`)
-            const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+            const downUrl = `file://${path.join(cwd(), zipFileName)}`
             setTimeout(() => {
               downloadFile(downUrl, `生成拣货文件共${imageTotal}`, () => setSpinning(false))
             }, 500);
@@ -539,7 +594,7 @@ function App() {
             await fsExtra.copy(filePath, newFilePath);
             if (index === imageFiles.length - 1) {
               await generatePackage(`${zipFileName}`, `./${targetFileName}`)
-              const downUrl = `file://${path.join(process.cwd(), zipFileName)}`
+              const downUrl = `file://${path.join(cwd(), zipFileName)}`
               setTimeout(() => {
                 downloadFile(downUrl, `生成排版${imageTotal}`, () => setSpinning(false))
               }, 500);
@@ -582,14 +637,28 @@ function App() {
       }
     });
   }
+
+  const calculationOnChange = ({ target: { value } }: RadioChangeEvent) => {
+    setCalculationType(value);
+    
+
+  };
+
+  // 切换检索依据后，重新计算表格中的数据
+  useEffect(()=> {
+    calculationExcelData(excelTransResult)
+  }, [calculationType])
+
   const props: any = {
     name: 'file',
-    action: 'https://www.mocky.io/v2/5cc8019d300000980a055e76',
+    action: '#',
     headers: {
       authorization: 'authorization-text',
     },
     maxCount: 1,
     onChange(info: { file: { status: string; name: any; }; fileList: any; }) {
+      console.log('folderPath', folderPath)
+      
       if (info.file.status !== 'uploading') {
         console.log(info.file, info.fileList);
       }
@@ -605,6 +674,11 @@ function App() {
     customRequest: HandleImportFile,
   };
 
+  window.ipcRenderer.on('choose-path', (_event, message) => {
+    console.log('选择文件夹:', message)
+    setFolderPath(message[0])
+  })
+
   return (
     <ConfigProvider
       theme={{
@@ -618,16 +692,23 @@ function App() {
       }}
     >
       <main className="min-h-screen">
-        <div className="flex  justify-between p-24">
+        <div className="flex   p-24">
           <Upload {...props}>
-            <Button type="primary" icon={<UploadOutlined />}>
+            <Button type="primary" icon={<UploadOutlined />} disabled={!folderPath}>
               导入表格
             </Button>
             <div>
-              <p>1、上传表格</p>
-              <p>2、输入相应印花名或者拣货名，点击相应按钮生成文件夹</p>
+              <p>1、选择图片文件夹</p>
+              <p>2、上传表格</p>
+              <p>3、输入相应印花名或者拣货名，点击相应按钮生成文件夹</p>
             </div>
           </Upload>
+
+
+          <Button onClick={() => {
+            window.ipcRenderer.send('openWindow')
+          }}>选择图片文件夹</Button>
+
         </div>
 
         <Form
@@ -646,7 +727,14 @@ function App() {
           <Form.Item label="拣货名" name="goodsName">
             <Input />
           </Form.Item> */}
+          <Form.Item label="检索依据">
+            <Radio.Group options={calculationOptions} onChange={calculationOnChange} value={calculationType} />
+          </Form.Item>
         </Form>
+        <div>
+
+          
+        </div>
         <div className="btnCon">
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
           <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>

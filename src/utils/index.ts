@@ -1,66 +1,51 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { AxiosResponse } from "axios"
+import axios from 'axios'
 
-const axios = require('axios')
-const archiver = require('archiver')
-const fs = require('fs')
-
+const archiver = window.ipcRenderer.nodeModules.archiver
+console.log('archiver', archiver)
 /**
  * 
  * @description: 获取SKC值
  */
 
-export const findStringAndNextWord = (str: string, target: string) => {
-  if (!str) {
-    return null
+const str1 = `str SKC：2266683033
+SKC货号：
+备货母单号：WP24091919262
+03
+备货单号：WB2409191308619
+创建时间：2024-09-19 07:22
+要求发货时间：2024-09-20
+07:22
+【VMI】     【JIT】     【加急】`
+
+const target1 = `SKC：,SKC货号：`
+
+
+
+
+export const findStringAndNextWord = (str, target) => {
+  if (!str) return ""; // 如果输入字符串为空，直接返回空
+
+  const targets = target.split(',').map(t => t.trim()); // 按逗号拆分，并去除两端空格
+
+  for (const currentTarget of targets) {
+    // 严格匹配：currentTarget 后面必须紧跟字母数字（不能是换行或空格）
+    const regex = new RegExp(`${currentTarget}([a-zA-Z0-9]+)`);
+    const match = str.match(regex);
+
+    if (match) {
+      return match[1] || ""; // 返回匹配的字母数字部分
+    }
   }
-  const regex = new RegExp(target + '(\\d+)')
-  const match = str.match(regex)
-  return match ? match[1] : null
-}
 
-/**
- * @description: 生成压缩包
- * @param {string} zipName: 压缩包名称 url：目标文件路径
- */
-export const generatePackage = (zipName: string, url: string) => {
-  return new Promise((resolve, reject) => {
-      try {
-         // 创建一个文件写入流
-        const output = fs.createWriteStream(zipName);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // 设置压缩级别
-        });
+  return ""; // 所有关键词都没匹配到，返回空字符串
+};
 
-        // 监听错误事件
-        archive.on('error', function (err: Error) {
-          throw err;
-        });
 
-        // 将输出流管道到文件
-        archive.pipe(output);
 
-        // 添加整个文件夹到压缩包，假设文件夹名为'folderToZip'
-        // const folderPath = path.join(baseDirCopy, 'folderToZip');
 
-        archive.directory(url, false);
 
-        // 结束压缩过程
-        archive.finalize();
-        output.on('close', function() {
-          console.log(archive.pointer() + ' total bytes');
-          console.log('archiver has been finalized and the output file descriptor has closed.');
-          resolve('success')
-        });
-        output.on('finish', function() {
-          console.log('The file has been finalized and the output file descriptor has finseed.');
-        })
-      } catch (error) {
-        reject()
-      }
-  })
- 
-}
 
 /**
  * @description:下载文件
@@ -91,15 +76,6 @@ export const downloadFile = (url: string, name?: string, fn?: () => void) => {
     })
 }
 
-
-
-// Number.prototype?.az = function(n = 2) {
-// 	let s = "";
-// 	for (let i = 1; i < n; i++) {
-// 		s += '0';
-// 	}
-// 	return (s + this).slice(-1 * n);
-// }
 
 Object.defineProperty(Number.prototype, 'az', {
   value: function(n = 2) {
