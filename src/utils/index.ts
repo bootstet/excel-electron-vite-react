@@ -9,19 +9,6 @@ console.log('archiver', archiver)
  * @description: 获取SKC值
  */
 
-const str1 = `str SKC：2266683033
-SKC货号：
-备货母单号：WP24091919262
-03
-备货单号：WB2409191308619
-创建时间：2024-09-19 07:22
-要求发货时间：2024-09-20
-07:22
-【VMI】     【JIT】     【加急】`
-
-const target1 = `SKC：,SKC货号：`
-
-
 
 
 export const findStringAndNextWord = (str, target) => {

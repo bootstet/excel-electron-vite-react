@@ -66,32 +66,33 @@ function clearDir(pathName: string) {
 
 async function clearFolder(folderPath) {
   try {
-      const files = await fs.readdir(folderPath);
-      for (const file of files) {
-          const filePath = path.join(folderPath, file);
-          const stat = await fs.stat(filePath);
-          if (stat.isDirectory()) {
-              // 如果是目录，递归删除
-              await fs.rm(filePath, { recursive: true, force: true });
-          } else {
-              // 如果是文件，直接删除
-              await fs.unlink(filePath);
-          }
+    const files = await fs.readdir(folderPath);
+    for (const file of files) {
+      const filePath = path.join(folderPath, file);
+      const stat = await fs.stat(filePath);
+      if (stat.isDirectory()) {
+        // 如果是目录，递归删除
+        await fs.rm(filePath, { recursive: true, force: true });
+      } else {
+        // 如果是文件，直接删除
+        await fs.unlink(filePath);
       }
-      console.log('Folder cleared successfully');
+    }
+    console.log('Folder cleared successfully');
   } catch (err) {
-      console.error('Error clearing folder:', err);
+    console.error('Error clearing folder:', err);
   }
 }
 
 
 
 
-type CalculationType = 'skcNum' | 'skcCateLogNum' | 'skcAndCateLogNum'  // skc 或者 skc货号
-const calculationOptions:  CheckboxGroupProps<CalculationType>['options'] = [
+type CalculationType = 'skcNum' | 'skcCateLogNum' | 'skcAndCateLogNum' | 'SKU货号'  // skc 或者 skc货号
+const calculationOptions: CheckboxGroupProps<CalculationType>['options'] = [
   { label: 'skc', value: 'skcNum' },
   { label: 'skc货号', value: 'skcCateLogNum' },
   { label: 'skc货号+skc', value: 'skcAndCateLogNum' },
+  { label: 'sku货号', value: 'SKU货号' },
 ];
 
 function App() {
@@ -123,7 +124,7 @@ function App() {
   // 上传文件并解析成json
   const HandleImportFile = (info: any) => {
     if (!folderPath) {
-      return  message.error('请先选择图片文件夹！')
+      return message.error('请先选择图片文件夹！')
     }
 
     setSpinning(true)
@@ -160,6 +161,7 @@ function App() {
           '__EMPTY_1': "商品信息",
           '__EMPTY_2': "属性集",
           '__EMPTY_3': "SKU ID",
+          '__EMPTY_4': "SKU货号",
           '__EMPTY_5': "数量",
           '数量': "数量",
           'SKU ID': "SKU ID"
@@ -181,7 +183,7 @@ function App() {
           message.error('表格中没有数据,请重新上传');
           return;
         }
-        console.log('data', data)
+        console.log('excel-data', data)
         calculationExcelData(data, info)
       } catch (e) {
         setSpinning(false)
@@ -196,14 +198,17 @@ function App() {
     if (data && data.length > 0) {
       console.log('data', data)
       const result = data.reduce((acc, cur) => {
-        const calculationKey = {'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：', 'skcAndCateLogNum': 'SKC：,SKC货号：'}[calculationType]
+        const calculationKey = { 'skcNum': 'SKC：', 'skcCateLogNum': 'SKC货号：', 'skcAndCateLogNum': 'SKC：,SKC货号：', 'SKU货号': 'SKU货号' }[calculationType]
         console.log('calculationKey', calculationKey)
-        const key = findStringAndNextWord(cur['商品信息'], calculationKey)
+        // sku货号 取值key为SKU货号，其他为商品信息
+        const key = calculationType !== 'SKU货号' ? findStringAndNextWord(cur['商品信息'], calculationKey) : cur[calculationType]
+
+        console.log('key', key)
         // if (calculationType === 'skcAndCateLogNum') {
         //   key = findStringAndNextWord(cur['商品信息'], 'skcNum') || findStringAndNextWord(cur['商品信息'], 'skcCateLogNum')
         // }
         // console.log('key', key)
-        if (key) {
+        if (key && key!== "SKU货号") {
           acc[key] = acc[key] ? acc[key] + cur['数量'] : cur['数量']
         }
         return acc
@@ -217,12 +222,12 @@ function App() {
       setSpinning(false)
       console.log('result', result)
       getNoExistData(result)
-      console.log('excel中skc数据', result)
+      console.log(`excel中${calculationType}数据`, result)
 
     }
   }
 
- 
+
   const filedChange = (changedValues: { flowerName: string; goodsName: string; }[], allValues: { flowerName: string; goodsName: string; }) => {
     const { flowerName, goodsName } = allValues;
     setFlowerName(flowerName);
@@ -277,12 +282,12 @@ function App() {
           clearFolder(baseDir);
           console.log('------')
           console.log('baseDir', baseDir)
-          
+
         }
         await fsExtra.ensureDir(baseDir)
-        let imageTotal = 0 
+        let imageTotal = 0
         imageFiles.forEach(async (file: string, index: number) => {
-          
+
           const baseName = file.split('.')[0]
           const filePath = path.join(folderPath, file);
 
@@ -295,6 +300,7 @@ function App() {
           imageTotal = imageTotal + target[keyBaseName]
           // 压缩包中的文件名
           const downName = `${baseName}-${target[keyBaseName]}.jpg`
+          console.log('downName', downName)
           if (fs.existsSync(filePath)) {
             await fsExtra.copy(filePath, `${baseDir}\\${downName}`);
             if (index === imageFiles.length - 1) {
@@ -315,13 +321,13 @@ function App() {
     } catch (error) {
       console.error('---', error)
     }
-    
+
   }
   const buildTotalImageFile = () => {
     const targetFileName = 'imagesTotal'
     const zipFileName = 'zipTotal.zip'
     const target: { [key: string]: number } = paramsResult
-    
+
     setSpinning(true)
     if (Object.keys(target).length === 0) {
       message.error('没有读取到表格数据，请先上传表格！')
@@ -351,19 +357,19 @@ function App() {
       })
 
 
-      
+
       if (Object.keys(existImagesObj).length === 0) {
         message.error('无存在的图片！请检查images是否存在图片！')
         setSpinning(false)
         return
       }
-      const baseDir = path.join('./', targetFileName) 
+      const baseDir = path.join('./', targetFileName)
       if (fs.existsSync(baseDir)) {
         clearDir(baseDir)
       }
 
       await fsExtra.ensureDir(baseDir)
-      
+
       const transformData: any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
         const val = existImagesObj[cur]
         if (val in acc) {
@@ -488,11 +494,11 @@ function App() {
     });
   }
 
-  const generateLayoutFiles : (num: number) => void = (num : number)  => {
+  const generateLayoutFiles: (num: number) => void = (num: number) => {
     const targetFileName = 'imagesLayout'
     const zipFileName = 'zipLayout.zip'
     const target: { [key: string]: number } = paramsResult
-    
+
     setSpinning(true)
     if (Object.keys(target).length === 0) {
       message.error('没有读取到表格数据，请先上传表格！')
@@ -522,22 +528,22 @@ function App() {
       })
 
 
-      
+
       if (Object.keys(existImagesObj).length === 0) {
         message.error('无存在的图片！请检查images是否存在图片！')
         setSpinning(false)
         return
       }
-      const baseDir = path.join('./', targetFileName) 
+      const baseDir = path.join('./', targetFileName)
       if (fs.existsSync(baseDir)) {
         clearDir(baseDir)
       }
 
       await fsExtra.ensureDir(baseDir)
-      
-      const transformImageData : any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
+
+      const transformImageData: any = Object.keys(existImagesObj).reduce((acc: any, cur) => {
         const val = existImagesObj[cur]
-        const obj: {[key: string]: string[]} =  val in acc ? acc[val] : {}
+        const obj: { [key: string]: string[] } = val in acc ? acc[val] : {}
         for (let i = 0; i < val; i++) {
           const curKey = `${cur}_${i + 1}`
           obj[curKey] = imageFiles.filter((item: string | string[]) => item.includes(cur))
@@ -547,20 +553,20 @@ function App() {
       }, {})
 
 
-   
+
       // 循环一遍，生成总数，然后根据总数生成一个数组
       let imageTotal: number = 0
 
       Object.keys(transformImageData).map((item) => {
         Object.keys(transformImageData[item]).map(async (element) => {
           if (num && Number(item) < num) {
-            imageTotal = imageTotal + transformImageData[item][element].length 
+            imageTotal = imageTotal + transformImageData[item][element].length
           }
         })
       })
 
-      const layoutTotalNum: number = imageTotal % sm === 0 ? imageTotal  : imageTotal + (sm - imageTotal % sm)
-      type TypeImageObj = {orgName: string, newName: string}
+      const layoutTotalNum: number = imageTotal % sm === 0 ? imageTotal : imageTotal + (sm - imageTotal % sm)
+      type TypeImageObj = { orgName: string, newName: string }
       const emptyObj: TypeImageObj = {
         orgName: '',
         newName: ''
@@ -574,9 +580,9 @@ function App() {
           transformImageData[item][element].map((e: any, k: number) => {
             // const imageLength = transformImageData[item][element].length
             if (num && Number(item) >= num) {
-              return 
+              return
             }
-            const keyNum = firstEmptyIndex + md*k 
+            const keyNum = firstEmptyIndex + md * k
             totalImageArr[keyNum] = {
               orgName: e,
               newName: `${keyNum.az(5)}_${k + 1}_${e}`
@@ -605,7 +611,7 @@ function App() {
         }
       })
 
-      
+
     });
   }
 
@@ -624,28 +630,29 @@ function App() {
       console.log('noExistImagesObj', noExistImagesObj)
       console.log('existImagesObj', existImagesObj)
       const data = Object.keys(noExistImagesObj).join(',')
+      console.log('----data', data)
       if (Object.keys(data).length > 0) {
         Modal.error({
           title: '不存在的图片skc有：',
           content: data
         })
       } else {
-        Modal.success({
-          title: '导出成功，文件夹图片完整',
-          content: data
-        })
+        // Modal.success({
+        //   title: '导出成功，文件夹图片完整',
+        //   content: data
+        // })
       }
     });
   }
 
   const calculationOnChange = ({ target: { value } }: RadioChangeEvent) => {
     setCalculationType(value);
-    
+
 
   };
 
   // 切换检索依据后，重新计算表格中的数据
-  useEffect(()=> {
+  useEffect(() => {
     calculationExcelData(excelTransResult)
   }, [calculationType])
 
@@ -658,7 +665,7 @@ function App() {
     maxCount: 1,
     onChange(info: { file: { status: string; name: any; }; fileList: any; }) {
       console.log('folderPath', folderPath)
-      
+
       if (info.file.status !== 'uploading') {
         console.log(info.file, info.fileList);
       }
@@ -733,17 +740,17 @@ function App() {
         </Form>
         <div>
 
-          
+
         </div>
         <div className="btnCon">
           <Button className="btn" onClick={buildFlowerImageFile} >生成印花文件</Button>
-          <Button  onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
+          <Button onClick={buildTotalImageFile} className="ml-20">生成印花文件(脚哥专用)</Button>
           <Button onClick={buildGoodsImageFile} className="ml-20">生成拣货文件</Button>
           <Button onClick={() => generateLayoutFiles(1000)} className="ml-20">排版</Button>
           <Popover content={layoutContent} title="">
             <Button onClick={() => generateLayoutFiles(10)} className="ml-20">排版小于10</Button>
           </Popover>
-          
+
         </div>
         <Spin spinning={spinning} fullscreen tip="玩命生成中，请稍等..." />
       </main>

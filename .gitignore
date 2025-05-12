@@ -23,6 +23,7 @@ node_modules
 dist
 dist-ssr
 dist-electron
+dist-electron/*
 /dist-electron/**/*
 release
 *.local
