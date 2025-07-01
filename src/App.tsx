@@ -22,7 +22,7 @@ const emptyDir = window.ipcRenderer.nodeModules.emptyDir
 const generatePackage = window.ipcRenderer.nodeModules.generatePackage
 
 
-const endTime = '2025/06/30 23:59:59'
+const endTime = '2026/12/30 23:59:59'
 
 const sm = 3
 const md = 6
@@ -64,25 +64,50 @@ function clearDir(pathName: string) {
 
 }
 
-async function clearFolder(folderPath) {
-  try {
-    const files = await fs.readdir(folderPath);
-    for (const file of files) {
-      const filePath = path.join(folderPath, file);
-      const stat = await fs.stat(filePath);
-      if (stat.isDirectory()) {
-        // 如果是目录，递归删除
-        await fs.rm(filePath, { recursive: true, force: true });
-      } else {
-        // 如果是文件，直接删除
-        await fs.unlink(filePath);
-      }
-    }
-    console.log('Folder cleared successfully');
-  } catch (err) {
-    console.error('Error clearing folder:', err);
-  }
+// async function clearFolder(folderPath) {
+//   try {
+//     const files = await fs.readdir(folderPath, (err, files) => {
+//       if (err) throw console.error();
+      
+//     });
+
+    
+//     for (const file of files) {
+//       const filePath = path.join(folderPath, file);
+//       const stat = await fs.stat(filePath);
+//       if (stat.isDirectory()) {
+//         // 如果是目录，递归删除
+//         await fs.rm(filePath, { recursive: true, force: true });
+//       } else {
+//         // 如果是文件，直接删除
+//         await fs.unlink(filePath);
+//       }
+//     }
+//     console.log('Folder cleared successfully');
+//   } catch (err) {
+//     console.error('Error clearing folder:', err);
+//   }
+// }
+
+
+function clearFolder(folderPath) {
+    // 读取文件夹内容
+    fs.readdir(folderPath, (err, files) => {
+        if (err) throw err;
+
+        // 遍历文件夹中的每个文件/文件夹
+        for (const file of files) {
+            const filePath = path.join(folderPath, file);
+
+            // 使用 fs.rm 删除文件或文件夹
+            fs.rm(filePath, { recursive: true, force: true }, (err) => {
+                if (err) throw err;
+            });
+        }
+    });
 }
+
+
 
 
 
@@ -112,13 +137,13 @@ function App() {
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const endTimeDate = Date.parse(endTime)
-    const curTime = new Date().getTime()
-    if (curTime > endTimeDate) {
-      navigate('/401')
-    }
-  }, [])
+  // useEffect(() => {
+  //   const endTimeDate = Date.parse(endTime)
+  //   const curTime = new Date().getTime()
+  //   if (curTime > endTimeDate) {
+  //     navigate('/401')
+  //   }
+  // }, [])
 
 
   // 上传文件并解析成json
